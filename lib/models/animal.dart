@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 
 /// Especie ameacada do catalogo.
@@ -35,7 +36,8 @@ class Animal {
   final List<String> ameacas;
 
   Color get corStatusFundo => AppCores.statusFundo[status] ?? AppCores.borda;
-  Color get corStatusTexto => AppCores.statusTexto[status] ?? AppCores.textoMedio;
+  Color get corStatusTexto =>
+      AppCores.statusTexto[status] ?? AppCores.textoMedio;
   Color get corBioma => AppCores.biomasMapa[bioma] ?? AppCores.verde;
 
   /// Variacao do primeiro ao ultimo ano da serie, em %. Negativo = declinio.
@@ -60,7 +62,9 @@ class Animal {
     if (populacao == 0) return 'Extinta na natureza';
     if (populacao >= 1000) {
       final milhares = populacao / 1000;
-      final txt = milhares.toStringAsFixed(milhares.truncateToDouble() == milhares ? 0 : 1);
+      final txt = milhares.toStringAsFixed(
+        milhares.truncateToDouble() == milhares ? 0 : 1,
+      );
       return '$txt mil indivíduos'.replaceAll('.', ',');
     }
     return '$populacao indivíduos';

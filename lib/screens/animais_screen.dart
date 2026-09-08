@@ -105,8 +105,7 @@ class _AnimaisScreenState extends State<AnimaisScreen> {
                     return GridView.builder(
                       padding: const EdgeInsets.all(20),
                       itemCount: lista.length,
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: colunas,
                         crossAxisSpacing: 18,
                         mainAxisSpacing: 18,
@@ -167,14 +166,11 @@ class _Filtro extends StatelessWidget {
         onTap: aoTocar,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: ativo ? destaque : Colors.white,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: ativo ? destaque : AppCores.borda,
-            ),
+            border: Border.all(color: ativo ? destaque : AppCores.borda),
           ),
           child: Text(
             rotulo,
@@ -198,109 +194,109 @@ class _CartaoAnimal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: aoTocar,
+    onTap: aoTocar,
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppCores.borda),
+        border: Border.all(color: AppCores.borda),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 148,
+            width: double.infinity,
+            child: _ImagemAnimal(url: animal.imagem),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 148,
-                width: double.infinity,
-                child: _ImagemAnimal(url: animal.imagem),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  animal.nome,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppCores.texto,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    Text(
-                      animal.nome,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppCores.texto,
-                      ),
+                    _Etiqueta(
+                      texto: animal.status,
+                      fundo: animal.corStatusFundo,
+                      cor: animal.corStatusTexto,
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _Etiqueta(
-                          texto: animal.status,
-                          fundo: animal.corStatusFundo,
-                          cor: animal.corStatusTexto,
-                        ),
-                        _Etiqueta(
-                          texto: animal.bioma,
-                          fundo: animal.corBioma.withValues(alpha: 0.12),
-                          cor: animal.corBioma,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(
-                          animal.emRecuperacao
-                              ? Icons.trending_up
-                              : Icons.trending_down,
-                          size: 15,
-                          color: animal.emRecuperacao
-                              ? AppCores.verde
-                              : AppCores.erroTexto,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          animal.variacaoFormatada,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: animal.emRecuperacao
-                                ? AppCores.verde
-                                : AppCores.erroTexto,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'desde 2000',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppCores.textoSuave,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    LinhaChart(
-                      valores: animal.tendencia,
-                      rotulos: animal.anos,
-                      cor: animal.emRecuperacao
-                          ? AppCores.verde
-                          : AppCores.erroTexto,
-                      mostrarEixo: false,
-                      altura: 42,
+                    _Etiqueta(
+                      texto: animal.bioma,
+                      fundo: animal.corBioma.withValues(alpha: 0.12),
+                      cor: animal.corBioma,
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      animal.emRecuperacao
+                          ? Icons.trending_up
+                          : Icons.trending_down,
+                      size: 15,
+                      color: animal.emRecuperacao
+                          ? AppCores.verde
+                          : AppCores.erroTexto,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      animal.variacaoFormatada,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: animal.emRecuperacao
+                            ? AppCores.verde
+                            : AppCores.erroTexto,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'desde 2000',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppCores.textoSuave,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinhaChart(
+                  valores: animal.tendencia,
+                  rotulos: animal.anos,
+                  cor: animal.emRecuperacao
+                      ? AppCores.verde
+                      : AppCores.erroTexto,
+                  mostrarEixo: false,
+                  altura: 42,
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _ImagemAnimal extends StatelessWidget {
@@ -310,32 +306,32 @@ class _ImagemAnimal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.network(
-        url,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, filho, progresso) => progresso == null
-            ? filho
-            : Container(
-                color: AppCores.fundo,
-                child: const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppCores.verde,
-                    ),
-                  ),
+    url,
+    fit: BoxFit.cover,
+    loadingBuilder: (_, filho, progresso) => progresso == null
+        ? filho
+        : Container(
+            color: AppCores.fundo,
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppCores.verde,
                 ),
               ),
-        // Imagem hospedada no Supabase pode falhar (offline, bucket movido).
-        // Cai num placeholder em vez de exibir o icone de erro do Flutter.
-        errorBuilder: (_, _, _) => Container(
-          color: AppCores.verdeFundo,
-          child: const Center(
-            child: Icon(Icons.pets, size: 34, color: AppCores.verde),
+            ),
           ),
-        ),
-      );
+    // Imagem hospedada no Supabase pode falhar (offline, bucket movido).
+    // Cai num placeholder em vez de exibir o icone de erro do Flutter.
+    errorBuilder: (_, _, _) => Container(
+      color: AppCores.verdeFundo,
+      child: const Center(
+        child: Icon(Icons.pets, size: 34, color: AppCores.verde),
+      ),
+    ),
+  );
 }
 
 class _Etiqueta extends StatelessWidget {
@@ -351,20 +347,16 @@ class _Etiqueta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: fundo,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          texto,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: cor,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: fundo,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      texto,
+      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cor),
+    ),
+  );
 }
 
 class _FichaAnimal extends StatelessWidget {
@@ -375,192 +367,192 @@ class _FichaAnimal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        controller: controlador,
-        padding: EdgeInsets.zero,
-        children: [
-          SizedBox(
-            height: 220,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
+    controller: controlador,
+    padding: EdgeInsets.zero,
+    children: [
+      SizedBox(
+        height: 220,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _ImagemAnimal(url: animal.imagem),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.45),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, size: 20, color: Colors.white),
+                  tooltip: 'Fechar',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              animal.nome,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppCores.texto,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                _ImagemAnimal(url: animal.imagem),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Material(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close,
-                          size: 20, color: Colors.white),
-                      tooltip: 'Fechar',
-                    ),
-                  ),
+                _Etiqueta(
+                  texto: animal.status,
+                  fundo: animal.corStatusFundo,
+                  cor: animal.corStatusTexto,
+                ),
+                _Etiqueta(
+                  texto: animal.bioma,
+                  fundo: animal.corBioma.withValues(alpha: 0.12),
+                  cor: animal.corBioma,
+                ),
+                _Etiqueta(
+                  texto: animal.regiao,
+                  fundo: AppCores.borda,
+                  cor: AppCores.textoMedio,
                 ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  animal.nome,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppCores.texto,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _Etiqueta(
-                      texto: animal.status,
-                      fundo: animal.corStatusFundo,
-                      cor: animal.corStatusTexto,
-                    ),
-                    _Etiqueta(
-                      texto: animal.bioma,
-                      fundo: animal.corBioma.withValues(alpha: 0.12),
-                      cor: animal.corBioma,
-                    ),
-                    _Etiqueta(
-                      texto: animal.regiao,
-                      fundo: AppCores.borda,
-                      cor: AppCores.textoMedio,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  animal.descricao,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.7,
-                    color: AppCores.textoMedio,
-                  ),
-                ),
-                const SizedBox(height: 24),
+            const SizedBox(height: 18),
+            Text(
+              animal.descricao,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.7,
+                color: AppCores.textoMedio,
+              ),
+            ),
+            const SizedBox(height: 24),
 
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: AppCores.fundo,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'População estimada',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppCores.textoSuave,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              animal.populacaoFormatada,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: AppCores.texto,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'Desde 2000',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppCores.textoSuave,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            animal.variacaoFormatada,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: animal.emRecuperacao
-                                  ? AppCores.verde
-                                  : AppCores.erroTexto,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'Tendência populacional',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppCores.texto,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                LinhaChart(
-                  valores: animal.tendencia,
-                  rotulos: animal.anos,
-                  cor: animal.emRecuperacao
-                      ? AppCores.verde
-                      : AppCores.erroTexto,
-                  altura: 170,
-                ),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'Principais ameaças',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppCores.texto,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                for (final ameaca in animal.ameacas)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppCores.fundo,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.warning_amber_rounded,
-                            size: 16, color: AppCores.erroTexto),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            ameaca,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppCores.textoMedio,
-                            ),
+                        const Text(
+                          'População estimada',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppCores.textoSuave,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          animal.populacaoFormatada,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppCores.texto,
                           ),
                         ),
                       ],
                     ),
                   ),
-                const SizedBox(height: 12),
-              ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Desde 2000',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppCores.textoSuave,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        animal.variacaoFormatada,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: animal.emRecuperacao
+                              ? AppCores.verde
+                              : AppCores.erroTexto,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      );
+            const SizedBox(height: 24),
+
+            const Text(
+              'Tendência populacional',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppCores.texto,
+              ),
+            ),
+            const SizedBox(height: 14),
+            LinhaChart(
+              valores: animal.tendencia,
+              rotulos: animal.anos,
+              cor: animal.emRecuperacao ? AppCores.verde : AppCores.erroTexto,
+              altura: 170,
+            ),
+            const SizedBox(height: 24),
+
+            const Text(
+              'Principais ameaças',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppCores.texto,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final ameaca in animal.ameacas)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: AppCores.erroTexto,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        ameaca,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppCores.textoMedio,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _Vazio extends StatelessWidget {
@@ -568,25 +560,25 @@ class _Vazio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 40, color: AppCores.textoSuave),
-            SizedBox(height: 12),
-            Text(
-              'Nenhuma espécie encontrada',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppCores.textoMedio,
-              ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Tente outro termo ou limpe os filtros.',
-              style: TextStyle(fontSize: 13, color: AppCores.textoSuave),
-            ),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.search_off, size: 40, color: AppCores.textoSuave),
+        SizedBox(height: 12),
+        Text(
+          'Nenhuma espécie encontrada',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppCores.textoMedio,
+          ),
         ),
-      );
+        SizedBox(height: 4),
+        Text(
+          'Tente outro termo ou limpe os filtros.',
+          style: TextStyle(fontSize: 13, color: AppCores.textoSuave),
+        ),
+      ],
+    ),
+  );
 }

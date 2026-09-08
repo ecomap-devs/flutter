@@ -38,8 +38,7 @@ class GeoJsonService {
     final out = <AlertaDesmatamento>[];
     for (final f in (mapa['features'] as List)) {
       if (f is! Map) continue;
-      final alerta =
-          AlertaDesmatamento.doGeoJson(Map<String, dynamic>.from(f));
+      final alerta = AlertaDesmatamento.doGeoJson(Map<String, dynamic>.from(f));
       if (alerta != null) out.add(alerta);
     }
     return out;

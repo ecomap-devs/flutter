@@ -144,7 +144,9 @@ class _AuthModalState extends State<AuthModal> {
               if (_erro.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppCores.erroFundo,
                     border: Border.all(color: AppCores.erroBorda),
@@ -188,15 +190,20 @@ class _AuthModalState extends State<AuthModal> {
                           clipBehavior: Clip.antiAlias,
                           child: _bytesFoto != null
                               ? Image.memory(_bytesFoto!, fit: BoxFit.cover)
-                              : const Icon(Icons.photo_camera_outlined,
-                                  size: 24, color: AppCores.verde),
+                              : const Icon(
+                                  Icons.photo_camera_outlined,
+                                  size: 24,
+                                  color: AppCores.verde,
+                                ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         'Foto de perfil (opcional)',
                         style: TextStyle(
-                            fontSize: 12, color: AppCores.textoSuave),
+                          fontSize: 12,
+                          color: AppCores.textoSuave,
+                        ),
                       ),
                     ],
                   ),
@@ -227,8 +234,8 @@ class _AuthModalState extends State<AuthModal> {
                   _carregando
                       ? 'Aguarde...'
                       : _cadastro
-                          ? 'Criar conta'
-                          : 'Entrar',
+                      ? 'Criar conta'
+                      : 'Entrar',
                 ),
               ),
               const SizedBox(height: 12),
@@ -236,9 +243,9 @@ class _AuthModalState extends State<AuthModal> {
                 onPressed: _carregando
                     ? null
                     : () => setState(() {
-                          _cadastro = !_cadastro;
-                          _erro = '';
-                        }),
+                        _cadastro = !_cadastro;
+                        _erro = '';
+                      }),
                 child: Text(
                   _cadastro
                       ? 'Já tem conta? Entrar'

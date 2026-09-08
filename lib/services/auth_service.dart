@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show Supabase, FileOptions;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show Supabase, FileOptions;
 
 /// Cadastro e login por e-mail/senha, com avatar no Supabase Storage.
 ///
@@ -10,8 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase, FileOptio
 /// `avatars` do Supabase, grava o perfil em `usuarios/{uid}`.
 class AuthService {
   AuthService({FirebaseAuth? auth, FirebaseFirestore? db})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _db = db ?? FirebaseFirestore.instance;
+    : _auth = auth ?? FirebaseAuth.instance,
+      _db = db ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -60,7 +61,9 @@ class AuthService {
     }
 
     await user.updateDisplayName(nome.trim());
-    if (fotoUrl.isNotEmpty) await user.updatePhotoURL(fotoUrl);
+    if (fotoUrl.isNotEmpty) {
+      await user.updatePhotoURL(fotoUrl);
+    }
     await user.reload();
 
     await _db.collection('usuarios').doc(user.uid).set({
@@ -76,15 +79,16 @@ class AuthService {
   /// Traduz o codigo do Firebase para a mensagem que o usuario le.
   /// Porte do mapa `msgs` do AuthModal.jsx.
   static String mensagemDeErro(Object erro) {
-    if (erro is! FirebaseAuthException) return 'Algo deu errado. Tente de novo.';
+    if (erro is! FirebaseAuthException) {
+      return 'Algo deu errado. Tente de novo.';
+    }
     return switch (erro.code) {
       'email-already-in-use' => 'Este email já está em uso.',
       'invalid-email' => 'Email inválido.',
       'weak-password' => 'Senha deve ter ao menos 6 caracteres.',
       'invalid-credential' ||
       'wrong-password' ||
-      'user-not-found' =>
-        'Email ou senha incorretos.',
+      'user-not-found' => 'Email ou senha incorretos.',
       'network-request-failed' => 'Sem conexão. Verifique sua internet.',
       'too-many-requests' => 'Muitas tentativas. Aguarde um momento.',
       _ => erro.message ?? 'Algo deu errado. Tente de novo.',

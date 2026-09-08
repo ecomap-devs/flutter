@@ -6,7 +6,7 @@ import '../models/avaliacao.dart';
 /// Avaliacoes em tempo real — porte do `onSnapshot` do Reviews.jsx.
 class ReviewsService {
   ReviewsService({FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance;
+    : _db = db ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 

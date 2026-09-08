@@ -28,8 +28,7 @@ class _DonutChartState extends State<DonutChart>
 
   @override
   Widget build(BuildContext context) {
-    final total =
-        desmatamentoPorBioma.fold<int>(0, (s, b) => s + b.valor);
+    final total = desmatamentoPorBioma.fold<int>(0, (s, b) => s + b.valor);
 
     return Column(
       children: [

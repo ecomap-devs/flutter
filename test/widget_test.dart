@@ -106,27 +106,27 @@ void main() {
 
   group('AlertaDesmatamento.doGeoJson', () {
     Map<String, dynamic> featureValida() => {
-          'type': 'Feature',
-          'geometry': {
-            'type': 'Polygon',
-            'coordinates': [
-              [
-                [-52.4897, -6.71017],
-                [-52.49377, -6.71026],
-                [-52.48901, -6.71604],
-                [-52.4897, -6.71017],
-              ],
-            ],
-          },
-          'properties': {
-            'BIOMA': 'Amazônia',
-            'ESTADO': 'PARÁ',
-            'MUNICIPIO': 'São Félix do Xingu',
-            'AREAHA': 71.63,
-            'ANODETEC': 2019,
-            'VPRESSAO': 'agriculture',
-          },
-        };
+      'type': 'Feature',
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [
+          [
+            [-52.4897, -6.71017],
+            [-52.49377, -6.71026],
+            [-52.48901, -6.71604],
+            [-52.4897, -6.71017],
+          ],
+        ],
+      },
+      'properties': {
+        'BIOMA': 'Amazônia',
+        'ESTADO': 'PARÁ',
+        'MUNICIPIO': 'São Félix do Xingu',
+        'AREAHA': 71.63,
+        'ANODETEC': 2019,
+        'VPRESSAO': 'agriculture',
+      },
+    };
 
     test('lê uma feature bem formada e inverte lng/lat para LatLng', () {
       final a = AlertaDesmatamento.doGeoJson(featureValida());
@@ -142,7 +142,10 @@ void main() {
 
     test('devolve null em vez de estourar para geometria não-polígono', () {
       final f = featureValida();
-      f['geometry'] = {'type': 'Point', 'coordinates': <double>[-52.0, -6.0]};
+      f['geometry'] = {
+        'type': 'Point',
+        'coordinates': <double>[-52.0, -6.0],
+      };
       expect(AlertaDesmatamento.doGeoJson(f), isNull);
     });
 
@@ -182,16 +185,13 @@ void main() {
     testWidgets('Estrelas pinta 5 ícones', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: Estrelas(valor: 3, somenteLeitura: true),
-          ),
+          home: Scaffold(body: Estrelas(valor: 3, somenteLeitura: true)),
         ),
       );
       expect(find.byIcon(Icons.star_rounded), findsNWidgets(5));
     });
 
-    testWidgets('Estrelas somente leitura não dispara aoMudar',
-        (tester) async {
+    testWidgets('Estrelas somente leitura não dispara aoMudar', (tester) async {
       var chamou = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -210,8 +210,9 @@ void main() {
       expect(chamou, isFalse);
     });
 
-    testWidgets('Estrelas editável dispara aoMudar com a estrela tocada',
-        (tester) async {
+    testWidgets('Estrelas editável dispara aoMudar com a estrela tocada', (
+      tester,
+    ) async {
       var recebido = 0;
       await tester.pumpWidget(
         MaterialApp(
@@ -226,8 +227,9 @@ void main() {
       expect(recebido, 1);
     });
 
-    testWidgets('TelaDeConfiguracao lista as variáveis ausentes',
-        (tester) async {
+    testWidgets('TelaDeConfiguracao lista as variáveis ausentes', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const TelaDeConfiguracao(
           faltando: ['FIREBASE_API_KEY', 'SUPABASE_URL'],

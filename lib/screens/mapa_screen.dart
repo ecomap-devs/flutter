@@ -82,7 +82,8 @@ class _MapaScreenState extends State<MapaScreen> {
                       for (final a in alertas)
                         Polygon(
                           points: a.poligono,
-                          color: const Color(0xFFDC2626).withValues(alpha: 0.55),
+                          color: const Color(0xFFDC2626)
+                              .withValues(alpha: 0.55),
                           borderColor: const Color(0xFFEF4444),
                           borderStrokeWidth: 0.4,
                         ),
@@ -99,8 +100,9 @@ class _MapaScreenState extends State<MapaScreen> {
                             alpha: _selecionado?.nome == b.nome ? 0.55 : 0.28,
                           ),
                           borderColor: b.cor,
-                          borderStrokeWidth:
-                              _selecionado?.nome == b.nome ? 3 : 1.5,
+                          borderStrokeWidth: _selecionado?.nome == b.nome
+                              ? 3
+                              : 1.5,
                         ),
                   ],
                 ),
@@ -207,76 +209,76 @@ class _ListaBiomas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: AppCores.fundo,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'BIOMAS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-                color: AppCores.verde,
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final b in biomas)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () => aoSelecionar(b),
+    color: AppCores.fundo,
+    child: ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'BIOMAS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+            color: AppCores.verde,
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final b in biomas)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () => aoSelecionar(b),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: selecionado?.nome == b.nome
+                      ? AppCores.verdeFundo
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: selecionado?.nome == b.nome
-                          ? AppCores.verdeFundo
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: selecionado?.nome == b.nome
-                            ? AppCores.verde
-                            : AppCores.borda,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: b.cor,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            b.nome,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppCores.texto,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '${b.percentualDesmatado}%',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppCores.erroTexto,
-                          ),
-                        ),
-                      ],
-                    ),
+                  border: Border.all(
+                    color: selecionado?.nome == b.nome
+                        ? AppCores.verde
+                        : AppCores.borda,
                   ),
                 ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: b.cor,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        b.nome,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppCores.texto,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${b.percentualDesmatado}%',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppCores.erroTexto,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-          ],
-        ),
-      );
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _FichaBioma extends StatelessWidget {
@@ -287,93 +289,92 @@ class _FichaBioma extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 24,
-              offset: Offset(0, 8),
-            ),
-          ],
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x33000000),
+          blurRadius: 24,
+          offset: Offset(0, 8),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: bioma.cor,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    bioma.nome,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppCores.texto,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: aoFechar,
-                  icon: const Icon(Icons.close, size: 18),
-                  color: AppCores.textoSuave,
-                  tooltip: 'Fechar',
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              bioma.descricao,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: AppCores.textoSuave,
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: bioma.cor,
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _Metrica(
-                    rotulo: 'Área original',
-                    valor: bioma.areaFormatada,
-                    cor: AppCores.texto,
-                  ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                bioma.nome,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppCores.texto,
                 ),
-                Expanded(
-                  child: _Metrica(
-                    rotulo: 'Desmatado',
-                    valor: '${bioma.percentualDesmatado}%',
-                    cor: AppCores.erroTexto,
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: bioma.percentualDesmatado / 100,
-                minHeight: 8,
-                backgroundColor: AppCores.borda,
-                valueColor:
-                    const AlwaysStoppedAnimation(AppCores.erroTexto),
+            IconButton(
+              onPressed: aoFechar,
+              icon: const Icon(Icons.close, size: 18),
+              color: AppCores.textoSuave,
+              tooltip: 'Fechar',
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          bioma.descricao,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.5,
+            color: AppCores.textoSuave,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _Metrica(
+                rotulo: 'Área original',
+                valor: bioma.areaFormatada,
+                cor: AppCores.texto,
+              ),
+            ),
+            Expanded(
+              child: _Metrica(
+                rotulo: 'Desmatado',
+                valor: '${bioma.percentualDesmatado}%',
+                cor: AppCores.erroTexto,
               ),
             ),
           ],
         ),
-      );
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: bioma.percentualDesmatado / 100,
+            minHeight: 8,
+            backgroundColor: AppCores.borda,
+            valueColor: const AlwaysStoppedAnimation(AppCores.erroTexto),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Metrica extends StatelessWidget {
@@ -389,26 +390,19 @@ class _Metrica extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            rotulo,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppCores.textoSuave,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: cor,
-            ),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        rotulo,
+        style: const TextStyle(fontSize: 11, color: AppCores.textoSuave),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        valor,
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: cor),
+      ),
+    ],
+  );
 }
 
 class _BotaoAlertas extends StatelessWidget {
@@ -424,37 +418,36 @@ class _BotaoAlertas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        elevation: 3,
-        child: InkWell(
-          onTap: aoTocar,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  ativo ? Icons.visibility : Icons.visibility_off,
-                  size: 16,
-                  color: ativo ? AppCores.erroTexto : AppCores.textoSuave,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Alertas ($total)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: ativo ? AppCores.texto : AppCores.textoSuave,
-                  ),
-                ),
-              ],
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(10),
+    elevation: 3,
+    child: InkWell(
+      onTap: aoTocar,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              ativo ? Icons.visibility : Icons.visibility_off,
+              size: 16,
+              color: ativo ? AppCores.erroTexto : AppCores.textoSuave,
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              'Alertas ($total)',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: ativo ? AppCores.texto : AppCores.textoSuave,
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _Chip extends StatelessWidget {
@@ -464,17 +457,15 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: const [
-            BoxShadow(color: Color(0x22000000), blurRadius: 8),
-          ],
-        ),
-        child: Text(
-          texto,
-          style: const TextStyle(fontSize: 12, color: AppCores.textoMedio),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 8)],
+    ),
+    child: Text(
+      texto,
+      style: const TextStyle(fontSize: 12, color: AppCores.textoMedio),
+    ),
+  );
 }

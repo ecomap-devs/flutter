@@ -59,10 +59,7 @@ class _AppShellState extends State<AppShell> {
 
         final corpo = AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: KeyedSubtree(
-            key: ValueKey(_indice),
-            child: telas[_indice],
-          ),
+          child: KeyedSubtree(key: ValueKey(_indice), child: telas[_indice]),
         );
 
         return Scaffold(
@@ -91,8 +88,7 @@ class _AppShellState extends State<AppShell> {
                   onPressed: _pedirLogin,
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Entrar'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: AppCores.verde),
+                  style: TextButton.styleFrom(foregroundColor: AppCores.verde),
                 )
               else
                 PopupMenuButton<String>(
@@ -112,10 +108,7 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'sair',
-                      child: Text('Sair'),
-                    ),
+                    const PopupMenuItem(value: 'sair', child: Text('Sair')),
                   ],
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -126,9 +119,7 @@ class _AppShellState extends State<AppShell> {
                           ? null
                           : NetworkImage(usuario.photoURL!),
                       child: Text(
-                        (usuario.displayName ?? 'U')
-                            .characters
-                            .first
+                        (usuario.displayName ?? 'U').characters.first
                             .toUpperCase(),
                         style: const TextStyle(
                           color: AppCores.verde,
@@ -148,13 +139,13 @@ class _AppShellState extends State<AppShell> {
                   children: [
                     NavigationRail(
                       selectedIndex: _indice,
-                      onDestinationSelected: (i) =>
-                          setState(() => _indice = i),
+                      onDestinationSelected: (i) => setState(() => _indice = i),
                       labelType: NavigationRailLabelType.all,
                       backgroundColor: AppCores.fundo,
                       indicatorColor: AppCores.verdeFundo,
-                      selectedIconTheme:
-                          const IconThemeData(color: AppCores.verde),
+                      selectedIconTheme: const IconThemeData(
+                        color: AppCores.verde,
+                      ),
                       selectedLabelTextStyle: const TextStyle(
                         color: AppCores.verde,
                         fontWeight: FontWeight.w600,
@@ -183,8 +174,7 @@ class _AppShellState extends State<AppShell> {
                     for (final d in _destinos)
                       NavigationDestination(
                         icon: Icon(d.icone),
-                        selectedIcon:
-                            Icon(d.ativo, color: AppCores.verde),
+                        selectedIcon: Icon(d.ativo, color: AppCores.verde),
                         label: d.rotulo,
                       ),
                   ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../theme/app_theme.dart';
 
 /// Bioma brasileiro, com o(s) poligono(s) simplificado(s) usados no mapa.

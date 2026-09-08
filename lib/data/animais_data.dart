@@ -18,8 +18,7 @@ const animais = <Animal>[
         'Mata Atlântica nos últimos 15 anos. A fragmentação florestal impede '
         'a migração entre populações.',
     ameacas: ['Desmatamento', 'Caça ilegal', 'Fragmentação de habitat'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/onca-pintada.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/onca-pintada.png',
   ),
   Animal(
     nome: 'Arara-azul',
@@ -34,8 +33,7 @@ const animais = <Animal>[
         'preservação das matas ciliares e árvores nativas para nidificação '
         'no Pantanal.',
     ameacas: ['Tráfico de animais', 'Perda de habitat', 'Queimadas'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/arara-azul-de-lear_01_0.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/arara-azul-de-lear_01_0.png',
   ),
   Animal(
     nome: 'Mico-leão-dourado',
@@ -54,8 +52,7 @@ const animais = <Animal>[
       'Doenças',
       'Baixa diversidade genética',
     ],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/micoleao-cke.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/micoleao-cke.png',
   ),
   Animal(
     nome: 'Lobo-guará',
@@ -70,8 +67,7 @@ const animais = <Animal>[
         'A expansão agrícola e as rodovias são as principais causas de '
         'mortalidade da espécie.',
     ameacas: ['Expansão agrícola', 'Atropelamentos', 'Perda de habitat'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/lobo-guara.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/lobo-guara.png',
   ),
   Animal(
     nome: 'Tucano-de-bico-preto',
@@ -86,8 +82,7 @@ const animais = <Animal>[
         'tucano-de-bico-preto sofre com a fragmentação florestal que isola '
         'populações.',
     ameacas: ['Desmatamento', 'Tráfico de animais', 'Fragmentação'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/large-6.jpg',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/large-6.jpg',
   ),
   Animal(
     nome: 'Perereca-verde-da-mata',
@@ -102,8 +97,7 @@ const animais = <Animal>[
         'altamente sensível a alterações microclimáticas causadas pelo '
         'desmatamento.',
     ameacas: ['Desmatamento', 'Mudanças climáticas', 'Fungos patogênicos'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/figura_1.jpg',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/figura_1.jpg',
   ),
   Animal(
     nome: 'Tamanduá-bandeira',
@@ -118,8 +112,7 @@ const animais = <Animal>[
         'reprodutiva, tornando-o extremamente vulnerável à pressão humana '
         'sobre o Cerrado.',
     ameacas: ['Queimadas', 'Atropelamentos', 'Perda de habitat'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/tamandua-bandeira-2.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/tamandua-bandeira-2.png',
   ),
   Animal(
     nome: 'Boto-cor-de-rosa',
@@ -134,8 +127,7 @@ const animais = <Animal>[
         'pela poluição dos rios amazônicos, pesca acidental e construção de '
         'hidrelétricas.',
     ameacas: ['Poluição hídrica', 'Pesca acidental', 'Hidrelétricas'],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/banner_blog_novo_24.png',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/banner_blog_novo_24.png',
   ),
   Animal(
     nome: 'Ararinha-azul',
@@ -154,8 +146,7 @@ const animais = <Animal>[
       'Captura para cativeiro',
       'Ausência de habitat',
     ],
-    imagem:
-        'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/ARARINHA_AZUL-795.jpg',
+    imagem: 'https://wqvxjttidoxcblkfjoaf.supabase.co/storage/v1/object/public/animals/ARARINHA_AZUL-795.jpg',
   ),
 ];
 

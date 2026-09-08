@@ -79,7 +79,10 @@ class _LinhaPainter extends CustomPainter {
     }
 
     final caminho = Path();
-    final quantos = ((valores.length - 1) * progresso).clamp(0, valores.length - 1);
+    final quantos = ((valores.length - 1) * progresso).clamp(
+      0,
+      valores.length - 1,
+    );
     caminho.moveTo(pontoEm(0).dx, pontoEm(0).dy);
     for (var i = 1; i <= quantos.floor(); i++) {
       final p = pontoEm(i);
@@ -134,7 +137,10 @@ class _LinhaPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
       final x = (i / (valores.length - 1)) * size.width - tp.width / 2;
-      tp.paint(canvas, Offset(x.clamp(0, size.width - tp.width), size.height - 14));
+      tp.paint(
+        canvas,
+        Offset(x.clamp(0, size.width - tp.width), size.height - 14),
+      );
     }
   }
 

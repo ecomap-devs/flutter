@@ -28,17 +28,17 @@ class _RadarChartState extends State<RadarChart>
 
   @override
   Widget build(BuildContext context) => AspectRatio(
-        aspectRatio: 1,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (_, _) => CustomPaint(
-            painter: _RadarPainter(
-              progresso: Curves.easeOutCubic.transform(_c.value),
-            ),
-            size: Size.infinite,
-          ),
+    aspectRatio: 1,
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) => CustomPaint(
+        painter: _RadarPainter(
+          progresso: Curves.easeOutCubic.transform(_c.value),
         ),
-      );
+        size: Size.infinite,
+      ),
+    ),
+  );
 }
 
 class _RadarPainter extends CustomPainter {
@@ -91,10 +91,7 @@ class _RadarPainter extends CustomPainter {
     }
     p.close();
 
-    canvas.drawPath(
-      p,
-      Paint()..color = AppCores.verde.withValues(alpha: 0.22),
-    );
+    canvas.drawPath(p, Paint()..color = AppCores.verde.withValues(alpha: 0.22));
     canvas.drawPath(
       p,
       Paint()
@@ -123,7 +120,8 @@ class _RadarPainter extends CustomPainter {
       )..layout();
 
       final ang = (i / n) * 2 * math.pi - math.pi / 2;
-      final pos = centro +
+      final pos =
+          centro +
           Offset(math.cos(ang) * (raio + 18), math.sin(ang) * (raio + 18));
       tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
     }

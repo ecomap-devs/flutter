@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+
 import '../models/bioma.dart';
 
 /// Poligonos simplificados dos seis biomas — porte de `biomesData` do Mapa.jsx.
