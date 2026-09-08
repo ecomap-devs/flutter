@@ -35,6 +35,14 @@ Já está no `.gitignore`, e **não tire de lá**:
 | `ios/Runner/GoogleService-Info.plist` | Idem |
 | `android/key.properties`, `*.jks`, `*.keystore` | Assinatura de release |
 
+**Uma exceção, e é de propósito:** `android/keystore/debug.jks` **é versionado**. Sem
+um keystore de debug compartilhado, cada pessoa assinaria com o próprio
+`~/.android/debug.keystore` e teria um SHA-1 diferente — e como a chave de API do
+Firebase é restrita por package + SHA-1, o login quebraria para quem não estivesse na
+lista, em silêncio, aparecendo como erro genérico de autenticação. Keystore de debug
+não é segredo: assina apenas desenvolvimento, não publica nada, e a senha `android` é
+a convenção documentada do Android. O de **release nunca entra no repositório**.
+
 Se rodar `flutterfire configure`, os arquivos vão aparecer na sua máquina — é
 esperado, e eles não sobem. **Não force o commit deles.**
 
@@ -220,10 +228,9 @@ Tudo acima vale. Além disso:
 
 ## Pendências conhecidas
 
-- 🟡 **Restringir a chave Android por package + SHA-1.** Hoje ela só tem restrição
-  de API. A restrição de aplicativo exige o SHA-1 do certificado, que só existe
-  quando o grupo gerar o keystore de release — e, ao gerar, **é preciso cadastrar o
-  SHA-1 de release e o de debug**, senão o login quebra num dos dois.
+- 🟢 **Chave Android restrita** por package + SHA-1 de debug e de release (feito em
+  08/09). Se algum dia o keystore de release for regerado, **o SHA-1 novo precisa
+  entrar na chave** ou o login para de funcionar no APK assinado.
 - 🔴 **Publicar as `firestore.rules`** — o arquivo já existe e está versionado, mas
   ainda **não foi feito o deploy**. Até rodar `firebase deploy --only
   firestore:rules`, o que vale em produção são as regras antigas do console.

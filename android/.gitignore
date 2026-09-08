@@ -12,3 +12,8 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# Excecao consciente: o keystore de DEBUG e compartilhado de proposito, para
+# que os cinco do grupo assinem com o mesmo certificado e um SHA-1 so baste na
+# chave de API do Firebase. Nao e segredo: assina apenas desenvolvimento e usa
+# a senha `android`, convencao documentada do Android. O de release fica fora.
+!keystore/debug.jks

@@ -59,6 +59,12 @@ lib/firebase_options.dart
 android/key.properties
 *.jks
 *.keystore
+# Excecao consciente: o keystore de DEBUG e compartilhado de proposito.
+# Ele assina apenas build de desenvolvimento, nao publica nada, e a senha
+# `android` e a convencao documentada do Android. Sem um debug keystore unico,
+# cada pessoa do grupo teria um SHA-1 diferente e o login quebraria para quem
+# nao estivesse na lista da chave de API. O de RELEASE segue fora do repo.
+!android/keystore/debug.jks
 
 # Variaveis de ambiente
 .env
