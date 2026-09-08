@@ -1,0 +1,69 @@
+rules_version = '2';
+
+// Regras do EcoMapBrasil.
+//
+// Este arquivo existe para que as regras sejam VERSIONADAS e revisáveis em PR.
+// Até 08/09/2026 elas moravam só no console do Firebase, o que significa que
+// ninguém do grupo sabia dizer o que estava valendo — e regra que ninguém lê é
+// regra que ninguém confere.
+//
+// Lembrete do porquê disto importar mais que esconder chave: a apiKey do
+// Firebase é pública por design e vai para o bundle web e para o APK de
+// qualquer jeito. Quem decide o que pode ser lido e escrito é este arquivo.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Avaliações do site ──────────────────────────────────────────────
+    // Leitura pública: a Home mostra as avaliações para quem nem entrou.
+    // Escrita só de usuário logado, e só em nome de si mesmo.
+    match /avaliacoes/{avaliacaoId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.nota is int
+                    && request.resource.data.nota >= 1
+                    && request.resource.data.nota <= 5
+                    && request.resource.data.comentario is string
+                    && request.resource.data.comentario.size() > 0
+                    && request.resource.data.comentario.size() <= 2000
+                    && request.resource.data.nome is string
+                    && request.resource.data.nome.size() <= 200;
+
+      // Só o autor edita ou apaga a própria avaliação, e não pode
+      // transferir a autoria para outra pessoa no caminho.
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == resource.data.uid;
+
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ─── Perfis ──────────────────────────────────────────────────────────
+    // Leitura pública do que a avaliação já expõe (nome e foto).
+    //
+    // ⚠️ O documento guarda o e-mail do usuário. Enquanto a leitura for
+    // pública, o e-mail é público — o que é dado pessoal para a LGPD.
+    // A correção certa é parar de gravar o e-mail aqui (ele já vive no
+    // Firebase Auth) ou fechar a leitura. Está listado como pendência no
+    // AGENTS.md; até lá, esta regra descreve o que já acontece hoje, não um
+    // aval.
+    match /usuarios/{uid} {
+      allow read: if true;
+
+      allow create, update: if request.auth != null
+                            && request.auth.uid == uid;
+
+      allow delete: if false;
+    }
+
+    // ─── Tudo o mais ─────────────────────────────────────────────────────
+    // Coleção nova nasce fechada. Se o app passar a usar outra, a regra dela
+    // entra aqui e é revisada no PR — em vez de aparecer aberta em produção.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

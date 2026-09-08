@@ -38,6 +38,16 @@ Já está no `.gitignore`, e **não tire de lá**:
 Se rodar `flutterfire configure`, os arquivos vão aparecer na sua máquina — é
 esperado, e eles não sobem. **Não force o commit deles.**
 
+### As regras ficam versionadas
+
+As Firestore Rules estão em [`firestore.rules`](firestore.rules), não só no console.
+Coleção nova **nasce fechada** (`allow read, write: if false`) — para liberar, a
+regra entra no arquivo e é revisada no PR.
+
+```bash
+firebase deploy --only firestore:rules
+```
+
 ### O que "segredo" quer dizer aqui
 
 A `apiKey` do Firebase e a `anon key` do Supabase são **públicas por design**: vão
@@ -213,8 +223,13 @@ Tudo acima vale. Além disso:
 - 🔴 **Rotacionar as chaves** herdadas da versão React — ficaram expostas num
   repositório público. Nova anon key no Supabase, restrição por domínio na API key
   do Firebase.
-- 🔴 **Conferir as Firestore Rules** de `avaliacoes` e `usuarios`. Não existe
-  `firestore.rules` versionado; as regras foram configuradas pelo console.
+- 🔴 **Publicar as `firestore.rules`** — o arquivo já existe e está versionado, mas
+  ainda **não foi feito o deploy**. Até rodar `firebase deploy --only
+  firestore:rules`, o que vale em produção são as regras antigas do console.
+- 🟡 **O e-mail do usuário é público.** `usuarios/{uid}` guarda `email` e a leitura é
+  aberta, porque a avaliação precisa de nome e foto. E-mail é dado pessoal (LGPD): o
+  certo é parar de gravá-lo ali — o Firebase Auth já o tem — ou fechar a leitura e
+  copiar nome e foto para a própria avaliação.
 - 🟡 **GeoJSON de 6,7 MB embarcado** nos assets. Funciona, mas engorda o APK e o
   visitante da web baixa tudo. Alternativas: servir remoto ou simplificar polígonos.
 - 🟡 **Dados de referência hardcoded** em `lib/data/`. Próxima etapa é trocar por

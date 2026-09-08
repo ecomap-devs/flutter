@@ -177,7 +177,7 @@ void main() {
       // Os testes rodam sem env.json, então este é o caminho de falha real.
       expect(Env.completo, isFalse);
       expect(Env.faltando, contains('FIREBASE_API_KEY'));
-      expect(Env.faltando, contains('SUPABASE_ANON_KEY'));
+      expect(Env.faltando, contains('SUPABASE_PUBLISHABLE_KEY'));
     });
   });
 

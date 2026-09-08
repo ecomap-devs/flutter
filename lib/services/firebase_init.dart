@@ -27,7 +27,7 @@ Future<void> inicializarServicos() async {
 
   await Supabase.initialize(
     url: Env.supabaseUrl,
-    publishableKey: Env.supabaseAnonKey,
+    publishableKey: Env.supabasePublishableKey,
     debug: kDebugMode,
   );
 }

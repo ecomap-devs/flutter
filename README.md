@@ -140,15 +140,32 @@ ios/Runner/GoogleService-Info.plist     # idem
 android/key.properties, *.jks, *.keystore
 ```
 
+### Regras de acesso — o que de fato protege
+
+As **Firestore Rules** estão versionadas em [`firestore.rules`](firestore.rules) e
+são publicadas por `firebase deploy --only firestore:rules`. Antes elas moravam só
+no console, e ninguém do grupo sabia dizer o que estava valendo.
+
+Mexeu em como o app lê ou grava dado? A regra correspondente entra nesse arquivo e é
+revisada no PR.
+
 > [!WARNING]
-> **Chave pública de cliente não é segredo.** A `apiKey` do Firebase e a `anon key`
-> do Supabase vão para o bundle web e para o APK de qualquer jeito — APK é
-> descompilável. Tirá-las do código evita vazamento no repositório, mas **quem
+> **Chave pública de cliente não é segredo.** A `apiKey` do Firebase e a
+> *publishable key* do Supabase vão para o bundle web e para o APK de qualquer
+> jeito — APK é descompilável. Tirá-las do código evita vazamento no repositório, mas **quem
 > protege o dado são as Firestore Rules e o RLS do Supabase**.
 
-**Pendente:** as chaves em uso são as mesmas da versão React, que ficaram expostas
-num repositório público. Precisam ser **rotacionadas** antes de o projeto ir para
-valer — nova anon key no Supabase e restrição por domínio na API key do Firebase.
+**Pendente — as chaves em uso são as mesmas da versão React, expostas num
+repositório público:**
+
+1. **Supabase:** as `anon` keys viraram **legado**. A migração é para o novo formato
+   `sb_publishable_...`, criado no dashboard em *Settings → API Keys*. O código já
+   espera a variável `SUPABASE_PUBLISHABLE_KEY` e usa o parâmetro `publishableKey`.
+2. **Firebase:** a `apiKey` **não se rotaciona** — ela identifica o projeto. O que se
+   faz é restringi-la por referenciador HTTP no Google Cloud Console. Isso vale só
+   para a web: o app Android não envia referrer, e ali quem protege é a regra.
+3. **Firestore Rules:** o [`firestore.rules`](firestore.rules) existe mas **ainda não
+   foi publicado**. Até rodar o deploy, valem as regras antigas do console.
 
 ---
 

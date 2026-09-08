@@ -32,7 +32,9 @@ class Env {
   );
 
   static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
 
   /// Campos sem os quais o app nao sobe.
   static const _obrigatorios = <String, String>{
@@ -41,7 +43,7 @@ class Env {
     'FIREBASE_MESSAGING_SENDER_ID': firebaseMessagingSenderId,
     'FIREBASE_PROJECT_ID': firebaseProjectId,
     'SUPABASE_URL': supabaseUrl,
-    'SUPABASE_ANON_KEY': supabaseAnonKey,
+    'SUPABASE_PUBLISHABLE_KEY': supabasePublishableKey,
   };
 
   static List<String> get faltando => _obrigatorios.entries
