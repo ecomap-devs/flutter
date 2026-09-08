@@ -220,9 +220,10 @@ Tudo acima vale. Além disso:
 
 ## Pendências conhecidas
 
-- 🔴 **Rotacionar as chaves** herdadas da versão React — ficaram expostas num
-  repositório público. Nova anon key no Supabase, restrição por domínio na API key
-  do Firebase.
+- 🟡 **Restringir a chave Android por package + SHA-1.** Hoje ela só tem restrição
+  de API. A restrição de aplicativo exige o SHA-1 do certificado, que só existe
+  quando o grupo gerar o keystore de release — e, ao gerar, **é preciso cadastrar o
+  SHA-1 de release e o de debug**, senão o login quebra num dos dois.
 - 🔴 **Publicar as `firestore.rules`** — o arquivo já existe e está versionado, mas
   ainda **não foi feito o deploy**. Até rodar `firebase deploy --only
   firestore:rules`, o que vale em produção são as regras antigas do console.

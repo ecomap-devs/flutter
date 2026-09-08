@@ -176,7 +176,8 @@ void main() {
     test('sem --dart-define, reporta exatamente o que falta', () {
       // Os testes rodam sem env.json, então este é o caminho de falha real.
       expect(Env.completo, isFalse);
-      expect(Env.faltando, contains('FIREBASE_API_KEY'));
+      // Os testes rodam na VM (nao web), entao a chave cobrada e a do Android.
+      expect(Env.faltando, contains('FIREBASE_API_KEY_ANDROID'));
       expect(Env.faltando, contains('SUPABASE_PUBLISHABLE_KEY'));
     });
   });

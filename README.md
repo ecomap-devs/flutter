@@ -155,17 +155,25 @@ revisada no PR.
 > jeito — APK é descompilável. Tirá-las do código evita vazamento no repositório, mas **quem
 > protege o dado são as Firestore Rules e o RLS do Supabase**.
 
-**Pendente — as chaves em uso são as mesmas da versão React, expostas num
-repositório público:**
+### Uma chave por plataforma
 
-1. **Supabase:** as `anon` keys viraram **legado**. A migração é para o novo formato
-   `sb_publishable_...`, criado no dashboard em *Settings → API Keys*. O código já
-   espera a variável `SUPABASE_PUBLISHABLE_KEY` e usa o parâmetro `publishableKey`.
-2. **Firebase:** a `apiKey` **não se rotaciona** — ela identifica o projeto. O que se
-   faz é restringi-la por referenciador HTTP no Google Cloud Console. Isso vale só
-   para a web: o app Android não envia referrer, e ali quem protege é a regra.
-3. **Firestore Rules:** o [`firestore.rules`](firestore.rules) existe mas **ainda não
-   foi publicado**. Até rodar o deploy, valem as regras antigas do console.
+Web e Android usam **credenciais diferentes do Firebase**, e não é preciosismo: a
+restrição de aplicativo do Google Cloud é *exclusiva*. A chave web é travada por
+referenciador HTTP, e requisição sem header `Referer` — o caso de todo app nativo —
+seria recusada. Uma chave só para os dois alvos significa ou web desprotegida, ou
+Android quebrado.
+
+| Variável | Restrição |
+|---|---|
+| `FIREBASE_API_KEY_WEB` | Referenciador HTTP (`*.web.app`, `*.firebaseapp.com`, `localhost`) + 4 APIs |
+| `FIREBASE_API_KEY_ANDROID` | 4 APIs. **Falta** package name + SHA-1, que só existe com o keystore de release |
+
+`Env` escolhe pela plataforma com `kIsWeb`, e o ramo morto é eliminado no build —
+o bundle web não carrega a credencial do Android.
+
+**Rotação concluída em 08/09/2026:** as `anon` keys do Supabase viraram legado e
+foram **desativadas**; o projeto usa `sb_publishable_...`. As Firestore Rules foram
+publicadas.
 
 ---
 
