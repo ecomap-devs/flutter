@@ -159,7 +159,27 @@ callback? A tela de erro lista o que falta?
 ## Git
 
 ### Branches
-`main` é protegida. Trabalhe em branch e abra PR.
+A `main` **é protegida de verdade** — não é só convenção. O GitHub recusa push
+direto e exige, antes do merge:
+
+| Regra | Valor |
+|---|---|
+| Pull request obrigatório | sim |
+| Aprovações necessárias | **1** |
+| Review antiga é descartada ao subir commit novo | sim |
+| Checks que precisam passar | `Análise e testes`, `Build web`, `Build APK` |
+| Conversas do review resolvidas | sim |
+| Force push e deleção da branch | bloqueados |
+
+> **Uma saída de emergência, e ela é consciente:** a proteção **não se aplica a
+> administradores da organização**. É o que permite corrigir a `main` quando algo
+> quebra e não há ninguém acordado para aprovar. Use isso como exceção — se virar
+> hábito, o processo acima deixa de existir na prática.
+
+Não exigimos que a branch esteja atualizada com a `main` antes do merge: num grupo
+de cinco isso obrigaria a um rebase a cada merge alheio, e o custo não compensa.
+
+Trabalhe em branch e abra PR.
 
 ```
 feat/nome-curto      funcionalidade nova
@@ -231,9 +251,9 @@ Tudo acima vale. Além disso:
 - 🟢 **Chave Android restrita** por package + SHA-1 de debug e de release (feito em
   08/09). Se algum dia o keystore de release for regerado, **o SHA-1 novo precisa
   entrar na chave** ou o login para de funcionar no APK assinado.
-- 🔴 **Publicar as `firestore.rules`** — o arquivo já existe e está versionado, mas
-  ainda **não foi feito o deploy**. Até rodar `firebase deploy --only
-  firestore:rules`, o que vale em produção são as regras antigas do console.
+- 🟢 **`firestore.rules` publicadas** (08/09) e versionadas. O arquivo é a fonte:
+  mudou regra, muda o arquivo e sai no PR. Para publicar:
+  `firebase deploy --only firestore:rules`.
 - 🟡 **O e-mail do usuário é público.** `usuarios/{uid}` guarda `email` e a leitura é
   aberta, porque a avaliação precisa de nome e foto. E-mail é dado pessoal (LGPD): o
   certo é parar de gravá-lo ali — o Firebase Auth já o tem — ou fechar a leitura e
@@ -242,3 +262,7 @@ Tudo acima vale. Além disso:
   visitante da web baixa tudo. Alternativas: servir remoto ou simplificar polígonos.
 - 🟡 **Dados de referência hardcoded** em `lib/data/`. Próxima etapa é trocar por
   fonte oficial (PRODES/INPE, ICMBio, IBGE, MapBiomas).
+- 🟠 **O app nunca foi executado.** Tudo foi verificado por `analyze`, testes, build
+  e resposta de API — nenhuma tela foi aberta em emulador ou navegador. O mapa e os
+  quatro gráficos em `CustomPainter` nunca desenharam um pixel. Antes de qualquer
+  funcionalidade nova, rodar e olhar.

@@ -242,6 +242,10 @@ primeiro PR.
 Resumo: branch a partir da `main`, `dart format` + `analyze` + `test` antes de abrir
 o PR, e uma revisão de alguém do grupo para mergear.
 
+A `main` é protegida: push direto é recusado, e o merge exige **1 aprovação** mais os
+três checks da CI (`Análise e testes`, `Build web`, `Build APK`) passando. Cada PR
+ganha uma URL de preview automática — cole no PR se ajudar quem for revisar.
+
 ---
 
 ## 👥 Equipe
