@@ -37,6 +37,46 @@ class Bioma {
     return '$comPonto mil km²';
   }
 
+  /// O bioma mais especifico da lista que contem o ponto, ou `null`.
+  ///
+  /// Nao da para pegar o primeiro que contem: os poligonos deste projeto sao
+  /// retangulos grosseiros herdados do React e **se sobrepoem**. Sao Paulo cai
+  /// dentro do Cerrado E da Mata Atlantica, e escolher pelo primeiro da lista
+  /// escolheria pela ordem do arquivo `biomas_data.dart`, que nao quer dizer
+  /// nada — daria Cerrado.
+  ///
+  /// Entao ganha o **menor anel** que contem o ponto, que e o mais especifico.
+  /// Para Sao Paulo: Cerrado 247,2 contra Mata Atlantica 157,3.
+  static Bioma? maisEspecificoEm(List<Bioma> lista, LatLng ponto) {
+    Bioma? escolhido;
+    var menorArea = double.infinity;
+    for (final b in lista) {
+      for (final anel in b.poligonos) {
+        if (!_anelContem(anel, ponto)) continue;
+        final area = _areaDoAnel(anel);
+        if (area < menorArea) {
+          menorArea = area;
+          escolhido = b;
+        }
+      }
+    }
+    return escolhido;
+  }
+
+  /// Area do anel pela formula do cadarco, em graus quadrados.
+  ///
+  /// Nao serve como area de verdade (grau nao tem tamanho constante); serve
+  /// para comparar dois aneis entre si, que e o uso aqui.
+  static double _areaDoAnel(List<LatLng> anel) {
+    var soma = 0.0;
+    for (var i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+      soma +=
+          (anel[j].longitude * anel[i].latitude) -
+          (anel[i].longitude * anel[j].latitude);
+    }
+    return soma.abs() / 2;
+  }
+
   /// O ponto caiu dentro deste bioma?
   ///
   /// Existe porque os poligonos do mapa sao invisiveis (como eram no React) e

@@ -134,6 +134,27 @@ void main() {
       }
     });
 
+    // Os polígonos se sobrepõem, então "contém" não basta para escolher.
+    test('maisEspecificoEm: São Paulo é Mata Atlântica, não Cerrado', () {
+      const sp = LatLng(-23.55, -46.63);
+      final donos = biomas.where((b) => b.contem(sp)).map((b) => b.nome);
+      // A sobreposição é real: os dois contêm o ponto.
+      expect(donos, containsAll(<String>['Cerrado', 'Mata Atlântica']));
+      // E o Cerrado vem antes na lista, então pegar o primeiro daria errado.
+      expect(Bioma.maisEspecificoEm(biomas, sp)?.nome, 'Mata Atlântica');
+    });
+
+    test('maisEspecificoEm: ponto no Atlântico não devolve bioma', () {
+      expect(Bioma.maisEspecificoEm(biomas, const LatLng(-20, -25)), isNull);
+    });
+
+    test('maisEspecificoEm: o meio da Amazônia é Amazônia', () {
+      expect(
+        Bioma.maisEspecificoEm(biomas, const LatLng(-4, -63))?.nome,
+        'Amazônia',
+      );
+    });
+
     test('contem: a Amazônia não engole um ponto do Sul', () {
       final amazonia = biomas.firstWhere((b) => b.nome == 'Amazônia');
       // Porto Alegre.

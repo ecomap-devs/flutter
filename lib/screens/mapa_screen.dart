@@ -47,13 +47,7 @@ class _MapaScreenState extends State<MapaScreen> {
   /// a cada toque atrapalha quem so quer ler a ficha — quem quer aproximar
   /// clica na lista.
   void _tocarNoMapa(LatLng ponto) {
-    Bioma? achado;
-    for (final b in biomas) {
-      if (b.contem(ponto)) {
-        achado = b;
-        break;
-      }
-    }
+    final achado = Bioma.maisEspecificoEm(biomas, ponto);
     if (achado != _selecionado) setState(() => _selecionado = achado);
   }
 
