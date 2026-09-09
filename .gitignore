@@ -77,3 +77,8 @@ env.json
 *.bak
 *.old
 *-antigo
+
+# Sessao do compilador Kotlin: o Gradle cria enquanto builda e some depois.
+# Entrou num commit por acidente em 09/09 justamente porque um `flutter run`
+# estava rodando na hora do `git add -A`.
+android/.kotlin/
