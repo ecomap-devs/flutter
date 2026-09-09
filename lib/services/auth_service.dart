@@ -66,9 +66,11 @@ class AuthService {
     }
     await user.reload();
 
+    // O e-mail NAO entra aqui. Ele ja vive no Firebase Auth, que e o lugar
+    // dele, e gravar uma copia em documento de leitura aberta tornava dado
+    // pessoal publico sem que nada no app precisasse disso (LGPD).
     await _db.collection('usuarios').doc(user.uid).set({
       'nome': nome.trim(),
-      'email': email.trim(),
       'photoURL': fotoUrl,
       'criadoEm': FieldValue.serverTimestamp(),
     });

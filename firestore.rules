@@ -42,16 +42,20 @@ service cloud.firestore {
     }
 
     // ─── Perfis ──────────────────────────────────────────────────────────
-    // Leitura pública do que a avaliação já expõe (nome e foto).
+    // Corrigido em 09/09/2026: a leitura era pública e o documento guardava o
+    // e-mail do usuário, o que tornava dado pessoal público (LGPD).
     //
-    // ⚠️ O documento guarda o e-mail do usuário. Enquanto a leitura for
-    // pública, o e-mail é público — o que é dado pessoal para a LGPD.
-    // A correção certa é parar de gravar o e-mail aqui (ele já vive no
-    // Firebase Auth) ou fechar a leitura. Está listado como pendência no
-    // AGENTS.md; até lá, esta regra descreve o que já acontece hoje, não um
-    // aval.
+    // Duas coisas mudaram juntas: o app parou de gravar o e-mail
+    // (`AuthService.cadastrar`) — ele já vive no Firebase Auth, que é o lugar
+    // dele — e a leitura passou a ser só do dono.
+    //
+    // Fechar a leitura não quebrou nada porque **nada no app lê esta
+    // coleção**: a avaliação monta nome e foto a partir do `displayName` e do
+    // `photoURL` do Auth, não daqui (veja `ReviewsService.publicar`). Se um
+    // dia uma tela precisar ler perfil de terceiro, a regra reabre **para os
+    // campos que aquela tela precisa**, e isso passa por PR.
     match /usuarios/{uid} {
-      allow read: if true;
+      allow read: if request.auth != null && request.auth.uid == uid;
 
       allow create, update: if request.auth != null
                             && request.auth.uid == uid;

@@ -254,10 +254,12 @@ Tudo acima vale. Além disso:
 - 🟢 **`firestore.rules` publicadas** (08/09) e versionadas. O arquivo é a fonte:
   mudou regra, muda o arquivo e sai no PR. Para publicar:
   `firebase deploy --only firestore:rules`.
-- 🟡 **O e-mail do usuário é público.** `usuarios/{uid}` guarda `email` e a leitura é
-  aberta, porque a avaliação precisa de nome e foto. E-mail é dado pessoal (LGPD): o
-  certo é parar de gravá-lo ali — o Firebase Auth já o tem — ou fechar a leitura e
-  copiar nome e foto para a própria avaliação.
+- 🟢 **E-mail do usuário fora do Firestore** (09/09). `usuarios/{uid}` não guarda mais
+  `email`, e a leitura passou a ser só do dono. A premissa que sustentava a alternativa
+  cara — "a avaliação precisa de nome e foto daqui" — era falsa: **nada no app lê essa
+  coleção**; `ReviewsService.publicar` copia `displayName` e `photoURL` do Auth. **Falta
+  limpar os documentos antigos**, que ainda têm o e-mail gravado; parar de escrever não
+  apaga o que já está lá.
 - 🟡 **GeoJSON de 6,7 MB embarcado** nos assets. Funciona, mas engorda o APK e o
   visitante da web baixa tudo. Alternativas: servir remoto ou simplificar polígonos.
 - 🟡 **Dados de referência hardcoded** em `lib/data/`. Próxima etapa é trocar por
