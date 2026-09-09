@@ -135,12 +135,72 @@ void main() {
       expect(a.municipio, 'São Félix do Xingu');
       expect(a.areaHa, 71.63);
       expect(a.ano, 2019);
+      expect(a.partes, hasLength(1));
       // No GeoJSON a ordem é [lng, lat]; no LatLng é (lat, lng).
-      expect(a.poligono.first.latitude, closeTo(-6.71017, 0.00001));
-      expect(a.poligono.first.longitude, closeTo(-52.4897, 0.00001));
+      expect(a.partes.first.first.latitude, closeTo(-6.71017, 0.00001));
+      expect(a.partes.first.first.longitude, closeTo(-52.4897, 0.00001));
     });
 
-    test('devolve null em vez de estourar para geometria não-polígono', () {
+    test('lê MultiPolygon e guarda uma parte por pedaço', () {
+      // Regressão: até 09/09 este caso devolvia null e o mapa perdia 1.756
+      // alertas — 25,4% da área desmatada do arquivo.
+      final f = featureValida();
+      f['geometry'] = {
+        'type': 'MultiPolygon',
+        'coordinates': [
+          [
+            [
+              [-52.0, -6.0],
+              [-52.1, -6.0],
+              [-52.1, -6.1],
+              [-52.0, -6.0],
+            ],
+          ],
+          [
+            [
+              [-53.0, -7.0],
+              [-53.1, -7.0],
+              [-53.1, -7.1],
+              [-53.0, -7.0],
+            ],
+          ],
+        ],
+      };
+      final a = AlertaDesmatamento.doGeoJson(f);
+      expect(a, isNotNull);
+      expect(a!.partes, hasLength(2));
+      expect(a.partes[1].first.longitude, closeTo(-53.0, 0.00001));
+      // As propriedades continuam sendo as do alerta, não de cada pedaço.
+      expect(a.areaHa, 71.63);
+    });
+
+    test('parte degenerada não derruba as outras do mesmo alerta', () {
+      final f = featureValida();
+      f['geometry'] = {
+        'type': 'MultiPolygon',
+        'coordinates': [
+          [
+            [
+              [-52.0, -6.0],
+              [-52.1, -6.1],
+            ],
+          ],
+          [
+            [
+              [-53.0, -7.0],
+              [-53.1, -7.0],
+              [-53.1, -7.1],
+              [-53.0, -7.0],
+            ],
+          ],
+        ],
+      };
+      final a = AlertaDesmatamento.doGeoJson(f);
+      expect(a, isNotNull);
+      expect(a!.partes, hasLength(1));
+    });
+
+    test('devolve null para geometria que não é área', () {
       final f = featureValida();
       f['geometry'] = {
         'type': 'Point',

@@ -80,13 +80,14 @@ class _MapaScreenState extends State<MapaScreen> {
                   PolygonLayer(
                     polygons: [
                       for (final a in alertas)
-                        Polygon(
-                          points: a.poligono,
-                          color: const Color(0xFFDC2626)
-                              .withValues(alpha: 0.55),
-                          borderColor: const Color(0xFFEF4444),
-                          borderStrokeWidth: 0.4,
-                        ),
+                        for (final parte in a.partes)
+                          Polygon(
+                            points: parte,
+                            color: const Color(0xFFDC2626)
+                                .withValues(alpha: 0.55),
+                            borderColor: const Color(0xFFEF4444),
+                            borderStrokeWidth: 0.4,
+                          ),
                     ],
                   ),
 
