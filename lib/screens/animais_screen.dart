@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../data/animais_data.dart';
 import '../models/animal.dart';
 import '../theme/app_theme.dart';
+import '../widgets/superficie_vidro.dart';
+import '../widgets/animacao_na_tela.dart';
+import '../widgets/rolagem_suave.dart';
 import '../widgets/charts/linha_chart.dart';
 
 /// Catalogo de especies ameacadas — porte do Animais.jsx.
@@ -41,11 +44,30 @@ class _AnimaisScreenState extends State<AnimaisScreen> {
 
     return Column(
       children: [
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+        SuperficieVidro(
+          raio: 0,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                'Cada espécie, uma história.',
+                style: TextStyle(
+                  fontSize: 26,
+                  letterSpacing: -.7,
+                  fontWeight: FontWeight.w800,
+                  color: AppCores.texto,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${lista.length} espécies encontradas • Explore, filtre e conheça nossa fauna.',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppCores.textoSuave,
+                ),
+              ),
+              const SizedBox(height: 18),
               TextField(
                 controller: _busca,
                 onChanged: (_) => setState(() {}),
@@ -102,18 +124,27 @@ class _AnimaisScreenState extends State<AnimaisScreen> {
               : LayoutBuilder(
                   builder: (context, c) {
                     final colunas = (c.maxWidth / 330).floor().clamp(1, 4);
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: lista.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: colunas,
-                        crossAxisSpacing: 18,
-                        mainAxisSpacing: 18,
-                        mainAxisExtent: 340,
-                      ),
-                      itemBuilder: (_, i) => _CartaoAnimal(
-                        animal: lista[i],
-                        aoTocar: () => _abrirFicha(lista[i]),
+                    return RolagemSuave(
+                      builder: (_, controlador) => GridView.builder(
+                        controller: controlador,
+                        padding: const EdgeInsets.all(20),
+                        itemCount: lista.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: colunas,
+                          crossAxisSpacing: 18,
+                          mainAxisSpacing: 18,
+                          mainAxisExtent:
+                              195 +
+                              195 * MediaQuery.textScalerOf(context).scale(1),
+                        ),
+                        itemBuilder: (_, i) => RevelarAoRolar(
+                          key: ValueKey(lista[i].nome),
+                          atraso: Duration(milliseconds: (i % colunas) * 80),
+                          child: _CartaoAnimal(
+                            animal: lista[i],
+                            aoTocar: () => _abrirFicha(lista[i]),
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -165,8 +196,11 @@ class _Filtro extends StatelessWidget {
       child: InkWell(
         onTap: aoTocar,
         borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: ativo ? destaque : Colors.white,
             borderRadius: BorderRadius.circular(999),
@@ -193,23 +227,55 @@ class _CartaoAnimal extends StatelessWidget {
   final VoidCallback aoTocar;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: aoTocar,
-    borderRadius: BorderRadius.circular(16),
-    child: Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppCores.borda),
-      ),
+  Widget build(BuildContext context) => CartaoInterativo(
+    aoTocar: aoTocar,
+    child: SuperficieVidro(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 148,
+            height: 195,
             width: double.infinity,
-            child: _ImagemAnimal(url: animal.imagem),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _ImagemAnimal(url: animal.imagem),
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: SuperficieVidro(
+                    escuro: true,
+                    raio: 999,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    child: Text(
+                      animal.bioma,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  right: 12,
+                  top: 12,
+                  child: CircleAvatar(
+                    radius: 17,
+                    backgroundColor: Color(0xDEFFFFFF),
+                    child: Icon(
+                      Icons.arrow_outward,
+                      size: 18,
+                      color: AppCores.verde,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(14),
@@ -221,7 +287,7 @@ class _CartaoAnimal extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 19,
                     fontWeight: FontWeight.w700,
                     color: AppCores.texto,
                   ),

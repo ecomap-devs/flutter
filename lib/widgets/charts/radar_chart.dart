@@ -4,36 +4,19 @@ import 'package:flutter/material.dart';
 
 import '../../data/home_data.dart';
 import '../../theme/app_theme.dart';
+import '../animacao_na_tela.dart';
 
 /// Radar de pressao por bioma — porte do `RadarChart()` do Home.jsx.
-class RadarChart extends StatefulWidget {
+class RadarChart extends StatelessWidget {
   const RadarChart({super.key});
-
-  @override
-  State<RadarChart> createState() => _RadarChartState();
-}
-
-class _RadarChartState extends State<RadarChart>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1000),
-  )..forward();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) => AspectRatio(
     aspectRatio: 1,
-    child: AnimatedBuilder(
-      animation: _c,
-      builder: (_, _) => CustomPaint(
+    child: AnimacaoNaTela(
+      builder: (_, progresso, _) => CustomPaint(
         painter: _RadarPainter(
-          progresso: Curves.easeOutCubic.transform(_c.value),
+          progresso: Curves.easeInOutCubic.transform(progresso),
         ),
         size: Size.infinite,
       ),

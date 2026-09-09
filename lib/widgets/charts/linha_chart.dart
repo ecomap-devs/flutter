@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../animacao_na_tela.dart';
 
 /// Linha de tendencia populacional.
 ///
@@ -26,10 +27,8 @@ class LinhaChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (valores.length < 2) return SizedBox(height: altura);
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
+    return AnimacaoNaTela(
+      duracao: const Duration(milliseconds: 1500),
       builder: (_, t, _) => SizedBox(
         height: altura,
         child: CustomPaint(
@@ -37,7 +36,7 @@ class LinhaChart extends StatelessWidget {
             valores: valores,
             rotulos: rotulos,
             cor: cor,
-            progresso: t,
+            progresso: Curves.easeInOutCubic.transform(t),
             mostrarEixo: mostrarEixo,
           ),
           size: Size.infinite,
@@ -89,9 +88,16 @@ class _LinhaPainter extends CustomPainter {
       caminho.lineTo(p.dx, p.dy);
     }
 
+    final indice = quantos.floor();
+    final fracao = (quantos - indice).toDouble();
+    final ponta = indice < valores.length - 1
+        ? Offset.lerp(pontoEm(indice), pontoEm(indice + 1), fracao)!
+        : pontoEm(indice);
+    caminho.lineTo(ponta.dx, ponta.dy);
+
     // Area sob a curva.
     final area = Path.from(caminho)
-      ..lineTo(pontoEm(quantos.floor()).dx, 4 + alturaGrafico)
+      ..lineTo(ponta.dx, 4 + alturaGrafico)
       ..lineTo(pontoEm(0).dx, 4 + alturaGrafico)
       ..close();
     canvas.drawPath(

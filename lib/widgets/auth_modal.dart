@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import 'superficie_vidro.dart';
 
 /// Modal de login e cadastro — porte do AuthModal.jsx.
 class AuthModal extends StatefulWidget {
@@ -98,166 +99,171 @@ class _AuthModalState extends State<AuthModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       insetPadding: const EdgeInsets.all(16),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _cadastro ? 'Criar conta' : 'Entrar na conta',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppCores.texto,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, size: 20),
-                    color: const Color(0xFF9CA3AF),
-                    tooltip: 'Fechar',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _cadastro
-                    ? 'Cadastre-se para participar da comunidade.'
-                    : 'Acesse para deixar sua avaliação.',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppCores.textoSuave,
-                ),
-              ),
-              const SizedBox(height: 22),
-
-              if (_erro.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppCores.erroFundo,
-                    border: Border.all(color: AppCores.erroBorda),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _erro,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppCores.erroTexto,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              if (_cadastro) ...[
-                TextField(
-                  controller: _nome,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(hintText: 'Nome completo'),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: _escolherFoto,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: AppCores.verdeFundo,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppCores.verde,
-                              width: 2,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: _bytesFoto != null
-                              ? Image.memory(_bytesFoto!, fit: BoxFit.cover)
-                              : const Icon(
-                                  Icons.photo_camera_outlined,
-                                  size: 24,
-                                  color: AppCores.verde,
-                                ),
+        child: SuperficieVidro(
+          padding: EdgeInsets.zero,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _cadastro ? 'Criar conta' : 'Entrar na conta',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppCores.texto,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Foto de perfil (opcional)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppCores.textoSuave,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      color: const Color(0xFF9CA3AF),
+                      tooltip: 'Fechar',
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-              ],
-
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(hintText: 'Email'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _senha,
-                obscureText: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _carregando ? null : _enviar(),
-                decoration: const InputDecoration(hintText: 'Senha'),
-              ),
-              const SizedBox(height: 20),
-
-              FilledButton(
-                onPressed: _carregando ? null : _enviar,
-                child: Text(
-                  _carregando
-                      ? 'Aguarde...'
-                      : _cadastro
-                      ? 'Criar conta'
-                      : 'Entrar',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: _carregando
-                    ? null
-                    : () => setState(() {
-                        _cadastro = !_cadastro;
-                        _erro = '';
-                      }),
-                child: Text(
+                const SizedBox(height: 6),
+                Text(
                   _cadastro
-                      ? 'Já tem conta? Entrar'
-                      : 'Não tem conta? Cadastre-se',
+                      ? 'Cadastre-se para participar da comunidade.'
+                      : 'Acesse para deixar sua avaliação.',
                   style: const TextStyle(
                     fontSize: 13,
-                    color: AppCores.verde,
-                    decoration: TextDecoration.underline,
+                    color: AppCores.textoSuave,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 22),
+
+                if (_erro.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppCores.erroFundo,
+                      border: Border.all(color: AppCores.erroBorda),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _erro,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppCores.erroTexto,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                if (_cadastro) ...[
+                  TextField(
+                    controller: _nome,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      hintText: 'Nome completo',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: _escolherFoto,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: AppCores.verdeFundo,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppCores.verde,
+                                width: 2,
+                                style: BorderStyle.solid,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _bytesFoto != null
+                                ? Image.memory(_bytesFoto!, fit: BoxFit.cover)
+                                : const Icon(
+                                    Icons.photo_camera_outlined,
+                                    size: 24,
+                                    color: AppCores.verde,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Foto de perfil (opcional)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppCores.textoSuave,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                TextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: const InputDecoration(hintText: 'Email'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _senha,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _carregando ? null : _enviar(),
+                  decoration: const InputDecoration(hintText: 'Senha'),
+                ),
+                const SizedBox(height: 20),
+
+                FilledButton(
+                  onPressed: _carregando ? null : _enviar,
+                  child: Text(
+                    _carregando
+                        ? 'Aguarde...'
+                        : _cadastro
+                        ? 'Criar conta'
+                        : 'Entrar',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _carregando
+                      ? null
+                      : () => setState(() {
+                          _cadastro = !_cadastro;
+                          _erro = '';
+                        }),
+                  child: Text(
+                    _cadastro
+                        ? 'Já tem conta? Entrar'
+                        : 'Não tem conta? Cadastre-se',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppCores.verde,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
