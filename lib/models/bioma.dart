@@ -37,7 +37,39 @@ class Bioma {
     return '$comPonto mil km²';
   }
 
-  /// Centro medio de todos os aneis — usado para posicionar o rotulo.
+  /// O ponto caiu dentro deste bioma?
+  ///
+  /// Existe porque os poligonos do mapa sao invisiveis (como eram no React) e
+  /// as etiquetas sairam: sem isto, no celular — que nao tem a lista lateral —
+  /// nao haveria como selecionar bioma nenhum.
+  ///
+  /// Algoritmo do raio: conta quantas vezes uma semirreta saindo do ponto
+  /// cruza as arestas do anel. Impar = dentro. Como sao 6 biomas de poucos
+  /// vertices, roda a cada toque sem custo.
+  bool contem(LatLng ponto) {
+    for (final anel in poligonos) {
+      if (_anelContem(anel, ponto)) return true;
+    }
+    return false;
+  }
+
+  static bool _anelContem(List<LatLng> anel, LatLng p) {
+    if (anel.length < 3) return false;
+    var dentro = false;
+    for (var i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+      final yi = anel[i].latitude, xi = anel[i].longitude;
+      final yj = anel[j].latitude, xj = anel[j].longitude;
+      // A aresta cruza a latitude do ponto? Se sim, o cruzamento esta a
+      // direita dele?
+      final cruza =
+          (yi > p.latitude) != (yj > p.latitude) &&
+          p.longitude < (xj - xi) * (p.latitude - yi) / (yj - yi) + xi;
+      if (cruza) dentro = !dentro;
+    }
+    return dentro;
+  }
+
+  /// Centro medio de todos os aneis.
   LatLng get centro {
     var lat = 0.0, lng = 0.0, n = 0;
     for (final anel in poligonos) {
