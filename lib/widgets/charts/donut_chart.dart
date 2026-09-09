@@ -4,27 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../data/home_data.dart';
 import '../../theme/app_theme.dart';
+import '../animacao_na_tela.dart';
 
 /// Rosca de participacao por bioma — porte do `DonutChart()` do Home.jsx.
-class DonutChart extends StatefulWidget {
+class DonutChart extends StatelessWidget {
   const DonutChart({super.key});
-
-  @override
-  State<DonutChart> createState() => _DonutChartState();
-}
-
-class _DonutChartState extends State<DonutChart>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..forward();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +18,10 @@ class _DonutChartState extends State<DonutChart>
       children: [
         AspectRatio(
           aspectRatio: 1,
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, _) => CustomPaint(
+          child: AnimacaoNaTela(
+            builder: (_, progresso, _) => CustomPaint(
               painter: _DonutPainter(
-                progresso: Curves.easeOutCubic.transform(_c.value),
+                progresso: Curves.easeInOutCubic.transform(progresso),
                 total: total,
               ),
               child: Center(

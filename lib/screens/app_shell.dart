@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_modal.dart';
+import '../widgets/superficie_vidro.dart';
 import 'animais_screen.dart';
 import 'home_screen.dart';
 import 'mapa_screen.dart';
@@ -50,7 +51,12 @@ class _AppShellState extends State<AppShell> {
 
         final usuario = snap.data;
         final telas = [
-          HomeScreen(usuario: usuario, aoPedirLogin: _pedirLogin),
+          HomeScreen(
+            usuario: usuario,
+            aoPedirLogin: _pedirLogin,
+            aoAbrirMapa: () => setState(() => _indice = 1),
+            aoAbrirAnimais: () => setState(() => _indice = 2),
+          ),
           const MapaScreen(),
           const AnimaisScreen(),
         ];
@@ -58,14 +64,32 @@ class _AppShellState extends State<AppShell> {
         final ehMobile = Breakpoints.ehMobile(context);
 
         final corpo = AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 550),
+          reverseDuration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animacao) => FadeTransition(
+            opacity: animacao,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, .025),
+                end: Offset.zero,
+              ).animate(animacao),
+              child: child,
+            ),
+          ),
           child: KeyedSubtree(key: ValueKey(_indice), child: telas[_indice]),
         );
 
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: const Color(0xFF052E16),
+            surfaceTintColor: Colors.transparent,
+            toolbarHeight: 72,
             elevation: 0,
             scrolledUnderElevation: 1,
             title: Row(
@@ -77,7 +101,7 @@ class _AppShellState extends State<AppShell> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: AppCores.texto,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -88,7 +112,9 @@ class _AppShellState extends State<AppShell> {
                   onPressed: _pedirLogin,
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Entrar'),
-                  style: TextButton.styleFrom(foregroundColor: AppCores.verde),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppCores.verdeClaro,
+                  ),
                 )
               else
                 PopupMenuButton<String>(
@@ -137,47 +163,56 @@ class _AppShellState extends State<AppShell> {
               ? corpo
               : Row(
                   children: [
-                    NavigationRail(
-                      selectedIndex: _indice,
-                      onDestinationSelected: (i) => setState(() => _indice = i),
-                      labelType: NavigationRailLabelType.all,
-                      backgroundColor: AppCores.fundo,
-                      indicatorColor: AppCores.verdeFundo,
-                      selectedIconTheme: const IconThemeData(
-                        color: AppCores.verde,
+                    SuperficieVidro(
+                      raio: 0,
+                      padding: EdgeInsets.zero,
+                      child: NavigationRail(
+                        selectedIndex: _indice,
+                        onDestinationSelected: (i) =>
+                            setState(() => _indice = i),
+                        labelType: NavigationRailLabelType.all,
+                        backgroundColor: Colors.transparent,
+                        indicatorColor: AppCores.verdeFundo,
+                        selectedIconTheme: const IconThemeData(
+                          color: AppCores.verde,
+                        ),
+                        selectedLabelTextStyle: const TextStyle(
+                          color: AppCores.verde,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        destinations: [
+                          for (final d in _destinos)
+                            NavigationRailDestination(
+                              icon: Icon(d.icone),
+                              selectedIcon: Icon(d.ativo),
+                              label: Text(d.rotulo),
+                            ),
+                        ],
                       ),
-                      selectedLabelTextStyle: const TextStyle(
-                        color: AppCores.verde,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      destinations: [
-                        for (final d in _destinos)
-                          NavigationRailDestination(
-                            icon: Icon(d.icone),
-                            selectedIcon: Icon(d.ativo),
-                            label: Text(d.rotulo),
-                          ),
-                      ],
                     ),
                     const VerticalDivider(width: 1, color: AppCores.borda),
                     Expanded(child: corpo),
                   ],
                 ),
           bottomNavigationBar: ehMobile
-              ? NavigationBar(
-                  selectedIndex: _indice,
-                  onDestinationSelected: (i) => setState(() => _indice = i),
-                  backgroundColor: Colors.white,
-                  indicatorColor: AppCores.verdeFundo,
-                  destinations: [
-                    for (final d in _destinos)
-                      NavigationDestination(
-                        icon: Icon(d.icone),
-                        selectedIcon: Icon(d.ativo, color: AppCores.verde),
-                        label: d.rotulo,
-                      ),
-                  ],
+              ? SuperficieVidro(
+                  raio: 0,
+                  padding: EdgeInsets.zero,
+                  child: NavigationBar(
+                    selectedIndex: _indice,
+                    onDestinationSelected: (i) => setState(() => _indice = i),
+                    backgroundColor: Colors.transparent,
+                    indicatorColor: AppCores.verdeFundo,
+                    destinations: [
+                      for (final d in _destinos)
+                        NavigationDestination(
+                          icon: Icon(d.icone),
+                          selectedIcon: Icon(d.ativo, color: AppCores.verde),
+                          label: d.rotulo,
+                        ),
+                    ],
+                  ),
                 )
               : null,
         );

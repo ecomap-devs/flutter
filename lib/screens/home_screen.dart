@@ -8,6 +8,10 @@ import '../widgets/charts/donut_chart.dart';
 import '../widgets/charts/linha_chart.dart';
 import '../widgets/charts/radar_chart.dart';
 import '../widgets/reviews_section.dart';
+import '../widgets/hero_natureza.dart';
+import '../widgets/superficie_vidro.dart';
+import '../widgets/animacao_na_tela.dart';
+import '../widgets/rolagem_suave.dart';
 
 /// Landing page — porte do Home.jsx.
 class HomeScreen extends StatelessWidget {
@@ -15,98 +19,38 @@ class HomeScreen extends StatelessWidget {
     super.key,
     required this.usuario,
     required this.aoPedirLogin,
+    required this.aoAbrirMapa,
+    required this.aoAbrirAnimais,
   });
 
   final User? usuario;
   final VoidCallback aoPedirLogin;
+  final VoidCallback aoAbrirMapa;
+  final VoidCallback aoAbrirAnimais;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const _Hero(),
-          const _Estatisticas(),
-          const _Graficos(),
-          const _LinhaDoTempo(),
-          const _Solucoes(),
-          ReviewsSection(usuario: usuario, aoPedirLogin: aoPedirLogin),
-          const _Rodape(),
-        ],
-      ),
-    );
-  }
-}
-
-class _Hero extends StatelessWidget {
-  const _Hero();
-
-  @override
-  Widget build(BuildContext context) {
-    final ehMobile = Breakpoints.ehMobile(context);
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        vertical: ehMobile ? 56 : 88,
-        horizontal: 24,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF052E16), Color(0xFF14532D), Color(0xFF166534)],
-        ),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'PROJETO INTERDISCIPLINAR • FATEC',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    color: AppCores.verdeClaro,
-                  ),
-                ),
+    return RolagemSuave(
+      builder: (context, controlador) => SingleChildScrollView(
+        controller: controlador,
+        child: Column(
+          children: [
+            HeroNatureza(
+              aoAbrirMapa: aoAbrirMapa,
+              aoAbrirAnimais: aoAbrirAnimais,
+            ),
+            const _Estatisticas(),
+            const _Graficos(),
+            const _LinhaDoTempo(),
+            const _Solucoes(),
+            RevelarAoRolar(
+              child: ReviewsSection(
+                usuario: usuario,
+                aoPedirLogin: aoPedirLogin,
               ),
-              const SizedBox(height: 24),
-              Text(
-                'O Brasil perde floresta\ntodos os dias.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: ehMobile ? 32 : 48,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Dados de desmatamento e fauna ameaçada nos seis biomas '
-                'brasileiros — em mapa, gráfico e ficha de espécie, não em '
-                'tabela.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: Color(0xFFD1FAE5),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const _Rodape(),
+          ],
         ),
       ),
     );
@@ -120,7 +64,7 @@ class _Estatisticas extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     color: Colors.white,
-    padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
+    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
     child: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1100),
@@ -135,42 +79,41 @@ class _Estatisticas extends StatelessWidget {
                 crossAxisCount: colunas,
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                mainAxisExtent: 150,
+                mainAxisExtent: 150 * MediaQuery.textScalerOf(context).scale(1),
               ),
               itemBuilder: (_, i) {
                 final e = estatisticas[i];
-                return Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: AppCores.fundo,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppCores.borda),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(e.icone, color: e.cor, size: 26),
-                      const Spacer(),
-                      Text(
-                        e.valor,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: AppCores.texto,
+                return RevelarAoRolar(
+                  atraso: Duration(milliseconds: i * 90),
+                  child: SuperficieVidro(
+                    animarHover: true,
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(e.icone, color: e.cor, size: 26),
+                        const Spacer(),
+                        Text(
+                          e.valor,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: AppCores.texto,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        e.rotulo,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: AppCores.textoSuave,
+                        const SizedBox(height: 4),
+                        Text(
+                          e.rotulo,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: AppCores.textoSuave,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -198,7 +141,7 @@ class _Graficos extends StatelessWidget {
       const _CartaoGrafico(
         titulo: 'Participação de cada bioma',
         subtitulo: 'no total desmatado',
-        child: DonutChart(),
+        child: SizedBox(width: 220, child: DonutChart()),
       ),
       _CartaoGrafico(
         titulo: 'Evolução do desmatamento',
@@ -213,7 +156,7 @@ class _Graficos extends StatelessWidget {
       const _CartaoGrafico(
         titulo: 'Pressão relativa entre biomas',
         subtitulo: 'escala até 780 mil km²',
-        child: RadarChart(),
+        child: SizedBox(width: 300, child: RadarChart()),
       ),
     ];
 
@@ -230,7 +173,17 @@ class _Graficos extends StatelessWidget {
                 sobretitulo: 'OS NÚMEROS',
                 titulo: 'O que os dados mostram',
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 12),
+              const Text(
+                'Indicadores de referência do projeto. Não representam monitoramento em tempo real.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppCores.textoSuave,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
               if (ehMobile)
                 Column(
                   children: [
@@ -283,32 +236,32 @@ class _CartaoGrafico extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppCores.borda),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppCores.texto,
+  Widget build(BuildContext context) => RevelarAoRolar(
+    child: SuperficieVidro(
+      animarHover: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppCores.texto,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitulo,
-          style: const TextStyle(fontSize: 12, color: AppCores.textoSuave),
-        ),
-        const SizedBox(height: 24),
-        child,
-      ],
+          const SizedBox(height: 2),
+          Text(
+            subtitulo,
+            style: const TextStyle(fontSize: 12, color: AppCores.textoSuave),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 310 * MediaQuery.textScalerOf(context).scale(1),
+            child: Center(child: child),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -350,72 +303,74 @@ class _ItemTempo extends StatelessWidget {
   final bool ultimo;
 
   @override
-  Widget build(BuildContext context) => IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 56,
-          child: Text(
-            item.ano,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppCores.verde,
+  Widget build(BuildContext context) => RevelarAoRolar(
+    child: IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 56,
+            child: Text(
+              item.ano,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppCores.verde,
+              ),
             ),
           ),
-        ),
-        Column(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: AppCores.verde,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppCores.verde.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    spreadRadius: 2,
+          Column(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppCores.verde,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppCores.verde.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+              if (!ultimo)
+                Expanded(child: Container(width: 2, color: AppCores.borda)),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: ultimo ? 0 : 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.titulo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppCores.texto,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.texto,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: AppCores.textoSuave,
+                    ),
                   ),
                 ],
               ),
             ),
-            if (!ultimo)
-              Expanded(child: Container(width: 2, color: AppCores.borda)),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: ultimo ? 0 : 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.titulo,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppCores.texto,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.texto,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.6,
-                    color: AppCores.textoSuave,
-                  ),
-                ),
-              ],
-            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -426,7 +381,13 @@ class _Solucoes extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    color: AppCores.fundo,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF14532D), Color(0xFF052E16)],
+      ),
+    ),
     padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
     child: Center(
       child: ConstrainedBox(
@@ -434,6 +395,7 @@ class _Solucoes extends StatelessWidget {
         child: Column(
           children: [
             const _TituloSecao(
+              escuro: true,
               sobretitulo: 'O QUE FAZER',
               titulo: 'Soluções ao alcance de todos',
             ),
@@ -449,55 +411,55 @@ class _Solucoes extends StatelessWidget {
                     crossAxisCount: colunas,
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
-                    mainAxisExtent: 196,
+                    mainAxisExtent:
+                        250 * MediaQuery.textScalerOf(context).scale(1),
                   ),
                   itemBuilder: (_, i) {
                     final s = solucoes[i];
-                    return Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppCores.borda),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppCores.verdeFundo,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              s.icone,
-                              color: AppCores.verde,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            s.titulo,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppCores.texto,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Expanded(
-                            child: Text(
-                              s.texto,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 5,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                height: 1.6,
-                                color: AppCores.textoSuave,
+                    return RevelarAoRolar(
+                      atraso: Duration(milliseconds: (i % colunas) * 100),
+                      child: SuperficieVidro(
+                        animarHover: true,
+                        escuro: true,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppCores.verdeFundo,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                s.icone,
+                                color: AppCores.verde,
+                                size: 20,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 14),
+                            Text(
+                              s.titulo,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Expanded(
+                              child: Text(
+                                s.texto,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 5,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.6,
+                                  color: Color(0xFFD1FAE5),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -512,34 +474,42 @@ class _Solucoes extends StatelessWidget {
 }
 
 class _TituloSecao extends StatelessWidget {
-  const _TituloSecao({required this.sobretitulo, required this.titulo});
+  const _TituloSecao({
+    required this.sobretitulo,
+    required this.titulo,
+    this.escuro = false,
+  });
+
+  final bool escuro;
 
   final String sobretitulo;
   final String titulo;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Text(
-        sobretitulo,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2,
-          color: AppCores.verde,
+  Widget build(BuildContext context) => RevelarAoRolar(
+    child: Column(
+      children: [
+        Text(
+          sobretitulo,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+            color: escuro ? AppCores.verdeClaro : AppCores.verde,
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-      Text(
-        titulo,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 30,
-          fontWeight: FontWeight.w800,
-          color: AppCores.texto,
+        const SizedBox(height: 12),
+        Text(
+          titulo,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            color: escuro ? Colors.white : AppCores.texto,
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 

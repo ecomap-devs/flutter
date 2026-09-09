@@ -6,6 +6,7 @@ import '../data/biomas_data.dart';
 import '../models/bioma.dart';
 import '../services/geojson_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/superficie_vidro.dart';
 
 /// Mapa interativo dos biomas — porte do Mapa.jsx.
 ///
@@ -32,6 +33,12 @@ class _MapaScreenState extends State<MapaScreen> {
   void initState() {
     super.initState();
     _alertas = _geo.carregar();
+  }
+
+  @override
+  void dispose() {
+    _mapa.dispose();
+    super.dispose();
   }
 
   /// Selecao vinda da lista lateral: aproxima o mapa no bioma escolhido.
@@ -142,14 +149,61 @@ class _MapaScreenState extends State<MapaScreen> {
                 ),
               ),
 
+            Positioned(
+              left: 12,
+              top: 60,
+              child: SuperficieVidro(
+                padding: const EdgeInsets.all(4),
+                raio: 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Aproximar mapa',
+                      onPressed: () => _mapa.move(
+                        _mapa.camera.center,
+                        (_mapa.camera.zoom + 1).clamp(2, 12),
+                      ),
+                      icon: const Icon(Icons.add),
+                    ),
+                    IconButton(
+                      tooltip: 'Afastar mapa',
+                      onPressed: () => _mapa.move(
+                        _mapa.camera.center,
+                        (_mapa.camera.zoom - 1).clamp(2, 12),
+                      ),
+                      icon: const Icon(Icons.remove),
+                    ),
+                    IconButton(
+                      tooltip: 'Ver todo o Brasil',
+                      onPressed: () {
+                        setState(() => _selecionado = null);
+                        _mapa.move(const LatLng(-14, -52), ehMobile ? 3.4 : 4);
+                      },
+                      icon: const Icon(Icons.public),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             if (_selecionado != null)
               Positioned(
                 left: 12,
                 right: 12,
                 bottom: 12,
-                child: _FichaBioma(
-                  bioma: _selecionado!,
-                  aoFechar: () => setState(() => _selecionado = null),
+                child: EntradaSuave(
+                  key: ValueKey(_selecionado!.nome),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * .5,
+                    ),
+                    child: SingleChildScrollView(
+                      child: _FichaBioma(
+                        bioma: _selecionado!,
+                        aoFechar: () => setState(() => _selecionado = null),
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -188,7 +242,7 @@ class _ListaBiomas extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'BIOMAS',
+          'EXPLORE O BRASIL',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -196,7 +250,25 @@ class _ListaBiomas extends StatelessWidget {
             color: AppCores.verde,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        const Text(
+          'Seis biomas. Muitas conexões.',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: AppCores.texto,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Selecione um bioma para conhecer seu território e os impactos do desmatamento.',
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.6,
+            color: AppCores.textoSuave,
+          ),
+        ),
+        const SizedBox(height: 20),
         for (final b in biomas)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -262,19 +334,8 @@ class _FichaBioma extends StatelessWidget {
   final VoidCallback aoFechar;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => SuperficieVidro(
     padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x33000000),
-          blurRadius: 24,
-          offset: Offset(0, 8),
-        ),
-      ],
-    ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

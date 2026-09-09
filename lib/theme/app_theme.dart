@@ -79,10 +79,28 @@ ThemeData construirTema() {
       primary: AppCores.verde,
     ),
     useMaterial3: true,
-    scaffoldBackgroundColor: Colors.white,
+    scaffoldBackgroundColor: AppCores.fundo,
+    fontFamily: 'Segoe UI',
   );
 
   return base.copyWith(
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF052E16),
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(48, 50),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+    navigationBarTheme: const NavigationBarThemeData(
+      height: 70,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+    ),
     textTheme: base.textTheme.apply(
       bodyColor: AppCores.textoMedio,
       displayColor: AppCores.texto,
@@ -92,15 +110,15 @@ ThemeData construirTema() {
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppCores.borda, width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppCores.borda, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppCores.verde, width: 1.5),
       ),
     ),
@@ -110,8 +128,9 @@ ThemeData construirTema() {
         foregroundColor: Colors.white,
         disabledBackgroundColor: const Color(0xFF86EFAC),
         disabledForegroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        minimumSize: const Size(48, 50),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
     ),
