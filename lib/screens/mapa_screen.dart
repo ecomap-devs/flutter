@@ -41,9 +41,21 @@ class _MapaScreenState extends State<MapaScreen> {
     super.dispose();
   }
 
+  /// Selecao vinda da lista lateral: aproxima o mapa no bioma escolhido.
   void _selecionar(Bioma b) {
     setState(() => _selecionado = b);
     _mapa.move(b.centro, 5);
+  }
+
+  /// Toque no mapa: seleciona o bioma sob o dedo, ou limpa se caiu fora.
+  ///
+  /// Substitui as etiquetas que ficavam sobre o mapa. No React o clique
+  /// tambem dava `fitBounds`; aqui a camera fica parada, porque mover o mapa
+  /// a cada toque atrapalha quem so quer ler a ficha — quem quer aproximar
+  /// clica na lista.
+  void _tocarNoMapa(LatLng ponto) {
+    final achado = Bioma.maisEspecificoEm(biomas, ponto);
+    if (achado != _selecionado) setState(() => _selecionado = achado);
   }
 
   @override
@@ -64,7 +76,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 initialZoom: ehMobile ? 3.4 : 4,
                 minZoom: 2,
                 maxZoom: 12,
-                onTap: (_, _) => setState(() => _selecionado = null),
+                onTap: (_, ponto) => _tocarNoMapa(ponto),
               ),
               children: [
                 TileLayer(
@@ -81,67 +93,29 @@ class _MapaScreenState extends State<MapaScreen> {
                   userAgentPackageName: 'br.com.ecomapbrasil',
                 ),
 
-                // Alertas embaixo dos biomas: sao milhares de poligonos
-                // pequenos e precisam ficar visiveis dentro da area do bioma.
+                // Os biomas nao sao desenhados. Era assim no React
+                // (`opacity: 0, fillOpacity: 0`): o mapa mostra os alertas
+                // vermelhos, e mais nada. Os poligonos continuam existindo em
+                // `biomas_data.dart`, mas so como area de toque — quem resolve
+                // isso e `Bioma.contem`, no `onTap` do mapa, entao nao ha
+                // camada nenhuma para eles aqui.
+                //
+                // O ganho nao e so estetico: o preenchimento de 28% de alpha
+                // cobria o pais inteiro e abafava justamente o vermelho.
                 if (_mostrarAlertas && alertas.isNotEmpty)
                   PolygonLayer(
                     polygons: [
                       for (final a in alertas)
-                        Polygon(
-                          points: a.poligono,
-                          color: const Color(0xFFDC2626)
-                              .withValues(alpha: 0.55),
-                          borderColor: const Color(0xFFEF4444),
-                          borderStrokeWidth: 0.4,
-                        ),
+                        for (final parte in a.partes)
+                          Polygon(
+                            points: parte,
+                            color: const Color(0xFFDC2626)
+                                .withValues(alpha: 0.55),
+                            borderColor: const Color(0xFFEF4444),
+                            borderStrokeWidth: 0.4,
+                          ),
                     ],
                   ),
-
-                PolygonLayer(
-                  polygons: [
-                    for (final b in biomas)
-                      for (final anel in b.poligonos)
-                        Polygon(
-                          points: anel,
-                          color: b.cor.withValues(
-                            alpha: _selecionado?.nome == b.nome ? 0.55 : 0.28,
-                          ),
-                          borderColor: b.cor,
-                          borderStrokeWidth: _selecionado?.nome == b.nome
-                              ? 3
-                              : 1.5,
-                        ),
-                  ],
-                ),
-
-                MarkerLayer(
-                  markers: [
-                    for (final b in biomas)
-                      Marker(
-                        point: b.centro,
-                        width: 132,
-                        height: 34,
-                        child: GestureDetector(
-                          onTap: () => _selecionar(b),
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              b.nome,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
               ],
             ),
 
