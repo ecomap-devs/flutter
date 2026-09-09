@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:ecomapbrasil/config/env.dart';
 import 'package:ecomapbrasil/data/animais_data.dart';
@@ -102,6 +103,63 @@ void main() {
       expect(amazonia.areaFormatada, contains('mi km²'));
       expect(pantanal.areaFormatada, contains('mil km²'));
     });
+
+    // `contem` é o que substituiu as etiquetas sobre o mapa. No celular não há
+    // lista lateral, então sem isto não há como selecionar bioma nenhum.
+    test('contem: o centro cai dentro, para bioma de uma peça só', () {
+      final umaPeca = biomas.where((b) => b.poligonos.length == 1);
+      expect(umaPeca, isNotEmpty);
+      for (final b in umaPeca) {
+        expect(b.contem(b.centro), isTrue, reason: b.nome);
+      }
+    });
+
+    test('contem: o centro da Mata Atlântica cai FORA dela', () {
+      // Não é defeito de `contem`, é o que `centro` é: média dos vértices de
+      // todos os anéis. A Mata Atlântica tem três peças distantes — a faixa
+      // costeira do Nordeste e o bloco Sudeste/Sul — e a média cai no vão
+      // entre elas. Vale como aviso: `centro` serve de alvo de câmera, não
+      // como ponto representativo do bioma.
+      final ma = biomas.firstWhere((b) => b.nome == 'Mata Atlântica');
+      expect(ma.poligonos, hasLength(3));
+      expect(ma.contem(ma.centro), isFalse);
+      // Mas um ponto real dentro da peça Sudeste/Sul é reconhecido.
+      expect(ma.contem(const LatLng(-23.55, -46.63)), isTrue); // São Paulo
+    });
+
+    test('contem: ponto no Atlântico não cai em bioma nenhum', () {
+      const altoMar = LatLng(-20, -25);
+      for (final b in biomas) {
+        expect(b.contem(altoMar), isFalse, reason: b.nome);
+      }
+    });
+
+    // Os polígonos se sobrepõem, então "contém" não basta para escolher.
+    test('maisEspecificoEm: São Paulo é Mata Atlântica, não Cerrado', () {
+      const sp = LatLng(-23.55, -46.63);
+      final donos = biomas.where((b) => b.contem(sp)).map((b) => b.nome);
+      // A sobreposição é real: os dois contêm o ponto.
+      expect(donos, containsAll(<String>['Cerrado', 'Mata Atlântica']));
+      // E o Cerrado vem antes na lista, então pegar o primeiro daria errado.
+      expect(Bioma.maisEspecificoEm(biomas, sp)?.nome, 'Mata Atlântica');
+    });
+
+    test('maisEspecificoEm: ponto no Atlântico não devolve bioma', () {
+      expect(Bioma.maisEspecificoEm(biomas, const LatLng(-20, -25)), isNull);
+    });
+
+    test('maisEspecificoEm: o meio da Amazônia é Amazônia', () {
+      expect(
+        Bioma.maisEspecificoEm(biomas, const LatLng(-4, -63))?.nome,
+        'Amazônia',
+      );
+    });
+
+    test('contem: a Amazônia não engole um ponto do Sul', () {
+      final amazonia = biomas.firstWhere((b) => b.nome == 'Amazônia');
+      // Porto Alegre.
+      expect(amazonia.contem(const LatLng(-30.03, -51.23)), isFalse);
+    });
   });
 
   group('AlertaDesmatamento.doGeoJson', () {
@@ -135,12 +193,72 @@ void main() {
       expect(a.municipio, 'São Félix do Xingu');
       expect(a.areaHa, 71.63);
       expect(a.ano, 2019);
+      expect(a.partes, hasLength(1));
       // No GeoJSON a ordem é [lng, lat]; no LatLng é (lat, lng).
-      expect(a.poligono.first.latitude, closeTo(-6.71017, 0.00001));
-      expect(a.poligono.first.longitude, closeTo(-52.4897, 0.00001));
+      expect(a.partes.first.first.latitude, closeTo(-6.71017, 0.00001));
+      expect(a.partes.first.first.longitude, closeTo(-52.4897, 0.00001));
     });
 
-    test('devolve null em vez de estourar para geometria não-polígono', () {
+    test('lê MultiPolygon e guarda uma parte por pedaço', () {
+      // Regressão: até 09/09 este caso devolvia null e o mapa perdia 1.756
+      // alertas — 25,4% da área desmatada do arquivo.
+      final f = featureValida();
+      f['geometry'] = {
+        'type': 'MultiPolygon',
+        'coordinates': [
+          [
+            [
+              [-52.0, -6.0],
+              [-52.1, -6.0],
+              [-52.1, -6.1],
+              [-52.0, -6.0],
+            ],
+          ],
+          [
+            [
+              [-53.0, -7.0],
+              [-53.1, -7.0],
+              [-53.1, -7.1],
+              [-53.0, -7.0],
+            ],
+          ],
+        ],
+      };
+      final a = AlertaDesmatamento.doGeoJson(f);
+      expect(a, isNotNull);
+      expect(a!.partes, hasLength(2));
+      expect(a.partes[1].first.longitude, closeTo(-53.0, 0.00001));
+      // As propriedades continuam sendo as do alerta, não de cada pedaço.
+      expect(a.areaHa, 71.63);
+    });
+
+    test('parte degenerada não derruba as outras do mesmo alerta', () {
+      final f = featureValida();
+      f['geometry'] = {
+        'type': 'MultiPolygon',
+        'coordinates': [
+          [
+            [
+              [-52.0, -6.0],
+              [-52.1, -6.1],
+            ],
+          ],
+          [
+            [
+              [-53.0, -7.0],
+              [-53.1, -7.0],
+              [-53.1, -7.1],
+              [-53.0, -7.0],
+            ],
+          ],
+        ],
+      };
+      final a = AlertaDesmatamento.doGeoJson(f);
+      expect(a, isNotNull);
+      expect(a!.partes, hasLength(1));
+    });
+
+    test('devolve null para geometria que não é área', () {
       final f = featureValida();
       f['geometry'] = {
         'type': 'Point',
