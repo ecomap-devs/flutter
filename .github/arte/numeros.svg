@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 150" width="1200" height="150" role="img" aria-labelledby="t d">
+<title id="t">O EcoMapBrasil em números</title>
+<desc id="d">18.262 alertas no mapa, 1,6 mi hectares em alerta, 5 anos (2019–2023), 6 biomas, 9 espécies no catálogo, 36 testes.</desc>
+<style>@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+<rect x=".5" y=".5" width="1199" height="149" rx="18" fill="#0f1419" stroke="#263040"/>
+<line x1="200" y1="36" x2="200" y2="114" stroke="#263040"/><line x1="400" y1="36" x2="400" y2="114" stroke="#263040"/><line x1="600" y1="36" x2="600" y2="114" stroke="#263040"/><line x1="800" y1="36" x2="800" y2="114" stroke="#263040"/><line x1="1000" y1="36" x2="1000" y2="114" stroke="#263040"/>
+<text x="100" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">18.262</text>
+<rect x="86" y="86" width="28" height="3" rx="1.5" fill="#d95926"/>
+<text x="100" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">alertas no mapa</text>
+<text x="300" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">1,6 mi</text>
+<rect x="286" y="86" width="28" height="3" rx="1.5" fill="#d95926"/>
+<text x="300" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">hectares em alerta</text>
+<text x="500" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">5</text>
+<rect x="486" y="86" width="28" height="3" rx="1.5" fill="#3987e5"/>
+<text x="500" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">anos (2019–2023)</text>
+<text x="700" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">6</text>
+<rect x="686" y="86" width="28" height="3" rx="1.5" fill="#199e70"/>
+<text x="700" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">biomas</text>
+<text x="900" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">9</text>
+<rect x="886" y="86" width="28" height="3" rx="1.5" fill="#199e70"/>
+<text x="900" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">espécies no catálogo</text>
+<text x="1100" y="72" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#e6edf3">36</text>
+<rect x="1086" y="86" width="28" height="3" rx="1.5" fill="#3987e5"/>
+<text x="1100" y="114" text-anchor="middle" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa7b4">testes</text>
+</svg>
