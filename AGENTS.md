@@ -50,11 +50,17 @@ esperado, e eles não sobem. **Não force o commit deles.**
 
 As Firestore Rules estão em [`firestore.rules`](firestore.rules), não só no console.
 Coleção nova **nasce fechada** (`allow read, write: if false`) — para liberar, a
-regra entra no arquivo e é revisada no PR.
+regra entra no arquivo e é revisada no PR, **com caso novo em
+`firestore-testes/regras.test.js`**. Cada regra de "nega" de lá corresponde a um ataque
+concreto; os da revisão de 01/10/2026 estão todos lá.
 
 ```bash
-firebase deploy --only firestore:rules
+cd firestore-testes && npm install && npm test   # emulador; precisa de Java 21+
+firebase deploy --only firestore:rules           # só depois do merge
 ```
+
+As regras valem também para o site (semestre-4-nextjs): mudança que exija outro formato
+de escrita precisa sair nos dois clientes **antes** de as regras novas serem publicadas.
 
 ### O que "segredo" quer dizer aqui
 
@@ -214,7 +220,7 @@ Tudo automático, em `.github/workflows/`:
 
 | Quando | O que acontece |
 |---|---|
-| Push ou PR | `dart format`, `flutter analyze`, `flutter test` e build do APK |
+| Push ou PR | `dart format`, `flutter analyze`, `flutter test`, build do APK e testes das regras do Firestore |
 
 O APK debug fica anexado à execução da CI por 14 dias — dá para baixar e instalar
 no celular sem ter Flutter montado.

@@ -151,6 +151,9 @@ isso web e Android têm chaves diferentes.
 - **Keystore de release** fora do repositório. Perdê-lo significa nunca mais atualizar um
   app já instalado; e se ele for regerado, **o SHA-1 novo precisa entrar na chave
   Android**, ou o login para de funcionar no APK assinado.
+- **Release sem `android/key.properties` falha de propósito.** Até 01/10/2026 ele caía
+  no keystore de debug, que é público: qualquer pessoa conseguiria assinar um APK com a
+  mesma identidade. Para testar sem a chave, use o build de debug.
 
 As `anon` keys do Supabase foram **desativadas** em 08/09/2026, e o projeto usa a
 `sb_publishable_...`.
@@ -160,15 +163,24 @@ As `anon` keys do Supabase foram **desativadas** em 08/09/2026, e o projeto usa 
 <details>
 <summary>As regras do Firestore</summary>
 
-Versionadas em [`firestore.rules`](firestore.rules) e publicadas com
+Versionadas em [`firestore.rules`](firestore.rules), testadas no emulador em
+[`firestore-testes/`](firestore-testes) e publicadas com
 `firebase deploy --only firestore:rules`. Mudou como o app (ou o site) lê ou grava um
-dado? A regra correspondente muda no mesmo PR.
+dado? A regra muda no mesmo PR, com um caso novo nos testes.
 
-- `avaliacoes`: leitura pública; escrita só logado, em nome de si mesmo, com nota de 1
-  a 5 validada no `create`.
-- `usuarios/{uid}`: só o dono lê. **O e-mail não é gravado ali** desde 09/09/2026: ele já
-  vive no Firebase Auth, e nada no app lê essa coleção.
+- `avaliacoes`: leitura pública. **Uma por pessoa:** a nova tem id = uid de quem avalia.
+  Criação e edição seguem o mesmo esquema (nota inteira de 1 a 5, comentário de 1 a
+  2.000 caracteres, nome de 1 a 200, sem campos extras), com a hora do servidor. A
+  `photoURL` só pode ser vazia ou do bucket de avatares.
+- `usuarios/{uid}`: só o dono lê e escreve, com esquema. **O e-mail não é gravado ali**
+  desde 09/09/2026: ele já vive no Firebase Auth, e nada no app lê essa coleção.
 - Qualquer outra coleção nasce fechada.
+
+```bash
+cd firestore-testes && npm install && npm test   # precisa de Java 21+
+```
+
+As políticas do bucket `avatars` do Supabase estão em [`supabase/avatars.sql`](supabase/avatars.sql).
 
 </details>
 
@@ -178,7 +190,7 @@ Tudo automático, em [`.github/workflows/`](.github/workflows/):
 
 | Quando | O que roda |
 |---|---|
-| **Push ou PR** | `dart format` · `flutter analyze` · `flutter test` · build APK |
+| **Push ou PR** | `dart format` · `flutter analyze` · `flutter test` · build APK · testes das regras do Firestore no emulador |
 
 O **APK debug** fica anexado à execução da CI por 14 dias: dá para baixar e instalar no
 celular sem ter Flutter montado. Os secrets viram `env.json` dentro da CI e **nunca**
