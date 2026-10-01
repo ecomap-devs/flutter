@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// Regras do EcoMapBrasil.
+// Regras do EcoMapBrasil — valem para o app (este repositório) e para o site
+// (semestre-4-nextjs), que usam o mesmo projeto Firebase.
 //
 // Este arquivo existe para que as regras sejam VERSIONADAS e revisáveis em PR.
 // Até 08/09/2026 elas moravam só no console do Firebase, o que significa que
@@ -10,35 +11,72 @@ rules_version = '2';
 // Lembrete do porquê disto importar mais que esconder chave: a apiKey do
 // Firebase é pública por design e vai para o bundle web e para o APK de
 // qualquer jeito. Quem decide o que pode ser lido e escrito é este arquivo.
+//
+// Testadas no emulador por `firestore-testes/` (`npm test` lá dentro), e na CI.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─── Validações compartilhadas ───────────────────────────────────────
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function textoEntre(valor, minimo, maximo) {
+      return valor is string && valor.size() >= minimo && valor.size() <= maximo;
+    }
+
+    // A foto só pode vir do bucket de avatares do projeto, ou ficar vazia.
+    // Revisão de 01/10/2026: com URL livre, uma avaliação podia apontar a
+    // foto para um servidor de terceiros e registrar o IP de quem abrisse a
+    // página.
+    function fotoValida(valor) {
+      return valor is string && valor.size() <= 300 && (
+        valor == ''
+        || valor.matches('^https://wqvxjttidoxcblkfjoaf[.]supabase[.]co/storage/v1/object/public/avatars/[A-Za-z0-9._/-]+$')
+      );
+    }
+
     // ─── Avaliações do site ──────────────────────────────────────────────
     // Leitura pública: a Home mostra as avaliações para quem nem entrou.
-    // Escrita só de usuário logado, e só em nome de si mesmo.
+    //
+    // Revisão de 01/10/2026: o `update` não validava nada (dava para trocar
+    // a nota por "texto" ou 999999 e derrubar a lista do app), a criação
+    // aceitava campos extras e data inventada, e uma conta podia criar
+    // quantas avaliações quisesse. Agora o esquema é o mesmo nos dois
+    // caminhos, a data é a do servidor e o id da avaliação nova é o uid de
+    // quem avalia: uma por pessoa.
     match /avaliacoes/{avaliacaoId} {
+      function camposValidos(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5
+          && textoEntre(d.comentario, 1, 2000)
+          && textoEntre(d.nome, 1, 200)
+          && fotoValida(d.photoURL);
+      }
+
       allow read: if true;
 
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.nota is int
-                    && request.resource.data.nota >= 1
-                    && request.resource.data.nota <= 5
-                    && request.resource.data.comentario is string
-                    && request.resource.data.comentario.size() > 0
-                    && request.resource.data.comentario.size() <= 2000
-                    && request.resource.data.nome is string
-                    && request.resource.data.nome.size() <= 200;
+      allow create: if logado()
+        && avaliacaoId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'photoURL', 'nota', 'comentario', 'criadoEm'])
+        && request.resource.data.keys().hasAll(['uid', 'nome', 'photoURL', 'nota', 'comentario', 'criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && camposValidos(request.resource.data);
 
-      // Só o autor edita ou apaga a própria avaliação, e não pode
-      // transferir a autoria para outra pessoa no caminho.
-      allow update: if request.auth != null
-                    && resource.data.uid == request.auth.uid
-                    && request.resource.data.uid == resource.data.uid;
+      // O autor edita a própria avaliação, inclusive as antigas (de antes de o
+      // id ser o uid). Autoria e data de criação não mudam; a data da edição é
+      // a do servidor.
+      allow update: if logado()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['nome', 'photoURL', 'nota', 'comentario', 'atualizadoEm'])
+        && request.resource.data.atualizadoEm == request.time
+        && camposValidos(request.resource.data);
 
-      allow delete: if request.auth != null
-                    && resource.data.uid == request.auth.uid;
+      allow delete: if logado()
+        && resource.data.uid == request.auth.uid;
     }
 
     // ─── Perfis ──────────────────────────────────────────────────────────
@@ -54,11 +92,28 @@ service cloud.firestore {
     // `photoURL` do Auth, não daqui (veja `ReviewsService.publicar`). Se um
     // dia uma tela precisar ler perfil de terceiro, a regra reabre **para os
     // campos que aquela tela precisa**, e isso passa por PR.
+    //
+    // Revisão de 01/10/2026: o documento passou a ter esquema (antes o dono
+    // podia gravar qualquer campo, inclusive `email` de volta) e `criadoEm`
+    // passou a ser a hora do servidor, fixa depois de criada. Perfis antigos
+    // ainda guardam `email`: o dono pode apagá-lo, mas não regravá-lo.
     match /usuarios/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if logado() && request.auth.uid == uid;
 
-      allow create, update: if request.auth != null
-                            && request.auth.uid == uid;
+      allow create: if logado()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nome', 'photoURL', 'criadoEm'])
+        && request.resource.data.keys().hasAll(['nome', 'photoURL', 'criadoEm'])
+        && textoEntre(request.resource.data.nome, 1, 200)
+        && fotoValida(request.resource.data.photoURL)
+        && request.resource.data.criadoEm == request.time;
+
+      allow update: if logado()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'photoURL', 'email'])
+        && !('email' in request.resource.data)
+        && textoEntre(request.resource.data.nome, 1, 200)
+        && fotoValida(request.resource.data.photoURL);
 
       allow delete: if false;
     }

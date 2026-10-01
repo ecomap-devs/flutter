@@ -82,3 +82,9 @@ env.json
 # Entrou num commit por acidente em 09/09 justamente porque um `flutter run`
 # estava rodando na hora do `git add -A`.
 android/.kotlin/
+
+# Testes das Firestore Rules (Node)
+firestore-testes/node_modules/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
