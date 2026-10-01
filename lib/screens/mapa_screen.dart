@@ -47,6 +47,29 @@ class _MapaScreenState extends State<MapaScreen> {
     _mapa.move(b.centro, 5);
   }
 
+  /// No celular a lista lateral não cabe: abre numa folha por baixo.
+  ///
+  /// Revisão de 01/10/2026: antes, no celular, a única forma de escolher um
+  /// bioma era acertar o dedo no ponto certo do mapa — sem alternativa para
+  /// leitor de tela.
+  void _abrirListaDeBiomas() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (contexto) => SizedBox(
+        height: MediaQuery.sizeOf(contexto).height * .7,
+        child: _ListaBiomas(
+          selecionado: _selecionado,
+          aoSelecionar: (b) {
+            Navigator.of(contexto).pop();
+            _selecionar(b);
+          },
+        ),
+      ),
+    );
+  }
+
   /// Toque no mapa: seleciona o bioma sob o dedo, ou limpa se caiu fora.
   ///
   /// Substitui as etiquetas que ficavam sobre o mapa. No React o clique
@@ -108,7 +131,8 @@ class _MapaScreenState extends State<MapaScreen> {
                       for (final a in alertas)
                         for (final parte in a.partes)
                           Polygon(
-                            points: parte,
+                            points: parte.contorno,
+                            holePointsList: parte.buracos,
                             color: const Color(0xFFDC2626)
                                 .withValues(alpha: 0.55),
                             borderColor: const Color(0xFFEF4444),
@@ -174,6 +198,12 @@ class _MapaScreenState extends State<MapaScreen> {
                       ),
                       icon: const Icon(Icons.remove),
                     ),
+                    if (ehMobile)
+                      IconButton(
+                        tooltip: 'Escolher bioma',
+                        onPressed: _abrirListaDeBiomas,
+                        icon: const Icon(Icons.list_alt),
+                      ),
                     IconButton(
                       tooltip: 'Ver todo o Brasil',
                       onPressed: () {
@@ -272,52 +302,56 @@ class _ListaBiomas extends StatelessWidget {
         for (final b in biomas)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: () => aoSelecionar(b),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: selecionado?.nome == b.nome
-                      ? AppCores.verdeFundo
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
+            child: Semantics(
+              button: true,
+              selected: selecionado?.nome == b.nome,
+              child: InkWell(
+                onTap: () => aoSelecionar(b),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
                     color: selecionado?.nome == b.nome
-                        ? AppCores.verde
-                        : AppCores.borda,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: b.cor,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
+                        ? AppCores.verdeFundo
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selecionado?.nome == b.nome
+                          ? AppCores.verde
+                          : AppCores.borda,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        b.nome,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppCores.texto,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: b.cor,
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       ),
-                    ),
-                    Text(
-                      '${b.percentualDesmatado}%',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppCores.erroTexto,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          b.nome,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppCores.texto,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        '${b.percentualDesmatado}%',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppCores.erroTexto,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
