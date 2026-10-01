@@ -20,12 +20,29 @@
 //   GEMINI_API_KEY       chave criada em aistudio.google.com
 //   FIREBASE_PROJECT_ID  o mesmo do env.json do app
 //   GEMINI_MODEL         opcional; troca o modelo sem republicar a funcao
+//   GEMINI_MODEL_RESERVA opcional; o modelo usado quando o principal esta
+//                        sobrecarregado
+//
+// Os padroes sao apelidos ("-latest"), nao versoes fixas: em 01/10/2026 o
+// `gemini-2.5-flash` ja respondia 404, e versao fixa envelhece calada.
 
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@5";
 
 const CHAVE_GEMINI = Deno.env.get("GEMINI_API_KEY") ?? "";
 const PROJETO_FIREBASE = Deno.env.get("FIREBASE_PROJECT_ID") ?? "";
-const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
+const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-latest";
+const MODELO_RESERVA = Deno.env.get("GEMINI_MODEL_RESERVA") ||
+  "gemini-flash-lite-latest";
+
+// O nivel gratuito responde 503 ("modelo sobrecarregado") com frequencia, e
+// quase sempre passa em segundos. Antes de desistir: mais duas tentativas no
+// modelo principal e uma no reserva, mais leve e menos disputado.
+const TENTATIVAS = [
+  { modelo: MODELO, espera: 0 },
+  { modelo: MODELO, espera: 800 },
+  { modelo: MODELO, espera: 1600 },
+  { modelo: MODELO_RESERVA, espera: 0 },
+];
 
 // Chaves publicas que assinam os ID tokens do Firebase Auth.
 const CHAVES_FIREBASE = createRemoteJWKSet(
@@ -128,32 +145,45 @@ Deno.serve(async (req) => {
     return responder(413, { erro: "imagem-grande" });
   }
 
-  // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
-  const resposta = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": CHAVE_GEMINI,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { inline_data: { mime_type: tipoDaImagem(imagem), data: imagem } },
-              { text: INSTRUCAO },
-            ],
-          },
+  const corpo = JSON.stringify({
+    contents: [
+      {
+        parts: [
+          { inline_data: { mime_type: tipoDaImagem(imagem), data: imagem } },
+          { text: INSTRUCAO },
         ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: ESQUEMA,
-          temperature: 0.2,
-        },
-      }),
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: ESQUEMA,
+      temperature: 0.2,
     },
-  );
+  });
+
+  let resposta!: Response;
+  for (const [i, { modelo, espera }] of TENTATIVAS.entries()) {
+    if (espera) await new Promise((r) => setTimeout(r, espera));
+    // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
+    resposta = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": CHAVE_GEMINI,
+        },
+        body: corpo,
+      },
+    );
+    // So sobrecarga (503) e erro interno (500) valem nova tentativa; chave
+    // ou modelo errado falharia igual de novo.
+    if (resposta.status !== 503 && resposta.status !== 500) break;
+    // A ultima resposta fica intacta: o corpo dela vai para o log abaixo.
+    if (i === TENTATIVAS.length - 1) break;
+    console.warn("Gemini", modelo, "respondeu", resposta.status);
+    await resposta.body?.cancel();
+  }
 
   if (!resposta.ok) {
     console.error("Gemini respondeu", resposta.status, await resposta.text());
