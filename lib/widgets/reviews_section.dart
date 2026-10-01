@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 
 import '../models/avaliacao.dart';
 import '../services/reviews_service.dart';
@@ -27,16 +30,84 @@ class _ReviewsSectionState extends State<ReviewsSection> {
   late final ReviewsService _service = widget.service ?? ReviewsService();
   final _comentario = TextEditingController();
 
+  static const _porPagina = 6;
+
   int _nota = 0;
   bool _enviando = false;
-  bool _mostrarTodas = false;
   String _erro = '';
   bool _sucesso = false;
 
+  // A assinatura vive no estado, e não no `build`: antes o stream era criado
+  // de novo a cada reconstrução, e o app reassinava a coleção à toa.
+  int _limite = _porPagina;
+  StreamSubscription<List<Avaliacao>>? _assinatura;
+  List<Avaliacao> _lista = const [];
+  bool _carregando = true;
+  bool _falhou = false;
+  ResumoAvaliacoes? _resumo;
+  int _pedidoResumo = 0;
+  Timer? _relogioResumo;
+
+  @override
+  void initState() {
+    super.initState();
+    _assinar();
+    // Agregação não é tempo real: uma edição fora da página visível não
+    // dispara a lista. O resumo é refeito também de tempos em tempos.
+    _relogioResumo = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _atualizarResumo(),
+    );
+  }
+
   @override
   void dispose() {
+    _assinatura?.cancel();
+    _relogioResumo?.cancel();
     _comentario.dispose();
     super.dispose();
+  }
+
+  void _assinar() {
+    _assinatura?.cancel();
+    _assinatura = _service
+        .observar(limite: _limite)
+        .listen(
+          (lista) {
+            if (!mounted) return;
+            setState(() {
+              _lista = lista;
+              _carregando = false;
+              _falhou = false;
+            });
+            _atualizarResumo();
+          },
+          onError: (Object _) {
+            if (mounted) {
+              setState(() {
+                _carregando = false;
+                _falhou = true;
+              });
+            }
+          },
+        );
+  }
+
+  Future<void> _atualizarResumo() async {
+    // Só a resposta do pedido mais recente vale: uma lenta que chegue depois
+    // não sobrescreve a nova.
+    final pedido = ++_pedidoResumo;
+    try {
+      final r = await _service.resumo();
+      if (mounted && pedido == _pedidoResumo) setState(() => _resumo = r);
+    } catch (_) {
+      // Mantém o último resumo; a lista continua funcionando.
+    }
+  }
+
+  void _mudarLimite(int limite) {
+    setState(() => _limite = limite);
+    _assinar();
   }
 
   Future<void> _enviar() async {
@@ -56,6 +127,13 @@ class _ReviewsSectionState extends State<ReviewsSection> {
       return;
     }
 
+    if (_comentario.text.trim().length > maxComentario) {
+      setState(
+        () => _erro = 'O comentário pode ter até $maxComentario caracteres.',
+      );
+      return;
+    }
+
     setState(() => _enviando = true);
     try {
       await _service.publicar(
@@ -64,6 +142,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
         comentario: _comentario.text,
       );
       if (!mounted) return;
+      unawaited(_atualizarResumo());
       _comentario.clear();
       setState(() {
         _nota = 0;
@@ -74,6 +153,15 @@ class _ReviewsSectionState extends State<ReviewsSection> {
       // Firestore recusasse a escrita.
       await Future<void>.delayed(const Duration(seconds: 3));
       if (mounted) setState(() => _sucesso = false);
+    } on FirebaseException catch (e) {
+      if (mounted) {
+        setState(
+          () => _erro = e.code == 'permission-denied'
+              ? 'O servidor recusou a avaliação. Confira se o comentário tem '
+                    'até $maxComentario caracteres e tente de novo.'
+              : 'Não foi possível enviar. Verifique sua conexão e tente de novo.',
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _erro = 'Não foi possível enviar. Tente de novo.');
@@ -94,12 +182,12 @@ class _ReviewsSectionState extends State<ReviewsSection> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: StreamBuilder<List<Avaliacao>>(
-            stream: _service.observar(),
-            builder: (context, snap) {
-              final lista = snap.data ?? const <Avaliacao>[];
-              final media = ReviewsService.media(lista);
-              final visiveis = _mostrarTodas ? lista : lista.take(6).toList();
+          child: Builder(
+            builder: (context) {
+              final visiveis = _lista;
+              final media = _resumo?.media;
+              final total = _resumo?.total ?? _lista.length;
+              final restantes = total - _lista.length;
 
               return Column(
                 children: [
@@ -126,17 +214,17 @@ class _ReviewsSectionState extends State<ReviewsSection> {
 
                   if (media != null) ...[
                     const SizedBox(height: 16),
-                    _CartaoMedia(media: media, quantidade: lista.length),
+                    _CartaoMedia(media: media, quantidade: total),
                   ],
                   const SizedBox(height: 48),
 
-                  if (snap.connectionState == ConnectionState.waiting)
+                  if (_carregando)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 32),
                       child: CircularProgressIndicator(color: AppCores.verde),
                     ),
 
-                  if (snap.hasError)
+                  if (_falhou)
                     _Aviso(
                       texto: 'Não foi possível carregar as avaliações.',
                       erro: true,
@@ -163,11 +251,14 @@ class _ReviewsSectionState extends State<ReviewsSection> {
                       },
                     ),
 
-                  if (lista.length > 6) ...[
+                  if (restantes > 0 || _limite > _porPagina) ...[
                     const SizedBox(height: 24),
                     OutlinedButton(
-                      onPressed: () =>
-                          setState(() => _mostrarTodas = !_mostrarTodas),
+                      // De 12 em 12, até acabar: antes "Mostrar mais" baixava
+                      // a coleção inteira de uma vez.
+                      onPressed: () => _mudarLimite(
+                        restantes > 0 ? _limite + 12 : _porPagina,
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppCores.verde,
                         side: const BorderSide(color: AppCores.verde),
@@ -180,9 +271,9 @@ class _ReviewsSectionState extends State<ReviewsSection> {
                         ),
                       ),
                       child: Text(
-                        _mostrarTodas
-                            ? 'Mostrar menos'
-                            : 'Mostrar mais (${lista.length - 6} restantes)',
+                        restantes > 0
+                            ? 'Mostrar mais ($restantes restantes)'
+                            : 'Mostrar menos',
                       ),
                     ),
                   ],
@@ -469,6 +560,10 @@ class _Formulario extends StatelessWidget {
             controller: comentario,
             enabled: logado,
             maxLines: 4,
+            // O mesmo limite das Firestore Rules: antes o campo aceitava
+            // qualquer tamanho e o servidor recusava sem dizer por quê.
+            maxLength: maxComentario,
+            inputFormatters: [LengthLimitingTextInputFormatter(maxComentario)],
             decoration: InputDecoration(
               hintText: logado
                   ? 'Escreva seu comentário sobre o site...'

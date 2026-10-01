@@ -124,6 +124,21 @@ class Bioma {
   }
 }
 
+/// Um pedaco de um alerta: o contorno externo e os buracos dentro dele.
+@immutable
+class ParteAlerta {
+  const ParteAlerta({required this.contorno, this.buracos = const []});
+
+  final List<LatLng> contorno;
+
+  /// Aneis internos: areas dentro do contorno que NAO foram desmatadas.
+  ///
+  /// Ate 01/10/2026 eram descartados, e essas areas apareciam pintadas como
+  /// afetadas — 104 buracos em 92 features do arquivo, divergindo da
+  /// geometria original e do site (o Leaflet desenha os buracos).
+  final List<List<LatLng>> buracos;
+}
+
 /// Poligono de alerta de desmatamento vindo do GeoJSON do DETER-B/INPE.
 @immutable
 class AlertaDesmatamento {
@@ -144,13 +159,13 @@ class AlertaDesmatamento {
   final int ano;
   final String pressao;
 
-  /// Os pedacos do alerta, cada um um anel externo fechado.
+  /// Os pedacos do alerta, cada um com o anel externo e os buracos.
   ///
   /// E lista de listas porque um alerta pode vir partido: uma area derrubada
   /// que o satelite enxerga como duas manchas separadas chega como
   /// `MultiPolygon`. Sao 1.756 dos 18.262 alertas do arquivo — e justamente os
   /// grandes, porque area grande e a que tem chance de se partir.
-  final List<List<LatLng>> partes;
+  final List<ParteAlerta> partes;
 
   /// Le uma `Feature` do GeoJSON. Aceita `Polygon` e `MultiPolygon`.
   ///
@@ -163,8 +178,8 @@ class AlertaDesmatamento {
   /// na tela**, e o contador do botao mostrava 16.506 como se fosse o total,
   /// entao a perda nao tinha como ser notada olhando.
   ///
-  /// Aneis internos (buracos) sao ignorados de proposito: 92 features os tem,
-  /// e desenha-los pede outro campo no modelo. Fica para um PR proprio.
+  /// Uma propriedade com tipo inesperado (`AREAHA: "71.63"`, `properties: []`)
+  /// tambem nao derruba nada: vira o valor padrao daquele campo.
   static AlertaDesmatamento? doGeoJson(Map<String, dynamic> feature) {
     final geometria = feature['geometry'];
     if (geometria is! Map) return null;
@@ -182,33 +197,51 @@ class AlertaDesmatamento {
     };
     if (poligonos.isEmpty) return null;
 
-    final partes = <List<LatLng>>[];
+    final partes = <ParteAlerta>[];
     for (final poligono in poligonos) {
       if (poligono is! List || poligono.isEmpty) continue;
-      final anel = poligono.first; // externo; os demais sao buracos
-      if (anel is! List) continue;
-
-      final pontos = <LatLng>[];
-      for (final par in anel) {
-        if (par is! List || par.length < 2) continue;
-        final lng = par[0], lat = par[1];
-        if (lng is! num || lat is! num) continue;
-        pontos.add(LatLng(lat.toDouble(), lng.toDouble()));
-      }
+      // O primeiro anel e o externo; os demais sao buracos.
+      final contorno = _anel(poligono.first);
       // Parte degenerada nao derruba o alerta inteiro: as outras podem valer.
-      if (pontos.length >= 3) partes.add(pontos);
+      if (contorno == null) continue;
+      final buracos = [for (final anel in poligono.skip(1)) ?_anel(anel)];
+      partes.add(ParteAlerta(contorno: contorno, buracos: buracos));
     }
     if (partes.isEmpty) return null;
 
-    final p = (feature['properties'] as Map?) ?? const {};
+    final bruto = feature['properties'];
+    final p = bruto is Map ? bruto : const {};
     return AlertaDesmatamento(
-      bioma: (p['BIOMA'] ?? 'Desconhecido').toString(),
-      estado: (p['ESTADO'] ?? '').toString(),
-      municipio: (p['MUNICIPIO'] ?? '').toString(),
-      areaHa: (p['AREAHA'] as num?)?.toDouble() ?? 0,
-      ano: (p['ANODETEC'] as num?)?.toInt() ?? 0,
-      pressao: (p['VPRESSAO'] ?? '').toString(),
+      bioma: _texto(p['BIOMA'], 'Desconhecido'),
+      estado: _texto(p['ESTADO'], ''),
+      municipio: _texto(p['MUNICIPIO'], ''),
+      areaHa: _numero(p['AREAHA'])?.toDouble() ?? 0,
+      ano: _numero(p['ANODETEC'])?.toInt() ?? 0,
+      pressao: _texto(p['VPRESSAO'], ''),
       partes: partes,
     );
   }
+
+  /// Um anel do GeoJSON (`[[lng, lat], ...]`) com ao menos 3 pontos validos.
+  static List<LatLng>? _anel(Object? anel) {
+    if (anel is! List) return null;
+    final pontos = <LatLng>[];
+    for (final par in anel) {
+      if (par is! List || par.length < 2) continue;
+      final lng = par[0], lat = par[1];
+      if (lng is! num || lat is! num) continue;
+      if (lat.abs() > 90 || lng.abs() > 180) continue;
+      pontos.add(LatLng(lat.toDouble(), lng.toDouble()));
+    }
+    return pontos.length >= 3 ? pontos : null;
+  }
+
+  static num? _numero(Object? valor) => switch (valor) {
+    num n => n,
+    String t => num.tryParse(t),
+    _ => null,
+  };
+
+  static String _texto(Object? valor, String padrao) =>
+      valor == null ? padrao : valor.toString();
 }
