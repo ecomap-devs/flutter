@@ -6,10 +6,11 @@ import '../theme/app_theme.dart';
 import '../widgets/auth_modal.dart';
 import '../widgets/superficie_vidro.dart';
 import 'animais_screen.dart';
+import 'fotos_screen.dart';
 import 'home_screen.dart';
 import 'mapa_screen.dart';
 
-/// Casca de navegacao das tres telas.
+/// Casca de navegacao das quatro telas.
 ///
 /// Na versao React isso era React Router com um fade escrito a mao. Aqui e
 /// `NavigationBar` no mobile e `NavigationRail` no desktop — o padrao que o
@@ -30,6 +31,11 @@ class _AppShellState extends State<AppShell> {
     (icone: Icons.home_outlined, ativo: Icons.home, rotulo: 'Início'),
     (icone: Icons.map_outlined, ativo: Icons.map, rotulo: 'Mapa'),
     (icone: Icons.pets_outlined, ativo: Icons.pets, rotulo: 'Animais'),
+    (
+      icone: Icons.photo_camera_outlined,
+      ativo: Icons.photo_camera,
+      rotulo: 'Fotos',
+    ),
   ];
 
   void _pedirLogin() => AuthModal.abrir(context, widget.auth);
@@ -59,6 +65,7 @@ class _AppShellState extends State<AppShell> {
           ),
           const MapaScreen(),
           const AnimaisScreen(),
+          FotosScreen(usuario: usuario, aoPedirLogin: _pedirLogin),
         ];
 
         final ehMobile = Breakpoints.ehMobile(context);

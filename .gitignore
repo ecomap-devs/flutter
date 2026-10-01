@@ -47,7 +47,7 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# ── Segredos e credenciais (EcoMapBrasil) ──────────────────────────
+# â”€â”€ Segredos e credenciais (EcoMapBrasil) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Config do Firebase gerada pelo `flutterfire configure`.
 # Mesmo tipo de vazamento que o src/firebase.js da versao React.
 android/app/google-services.json
@@ -82,6 +82,10 @@ env.json
 # Entrou num commit por acidente em 09/09 justamente porque um `flutter run`
 # estava rodando na hora do `git add -A`.
 android/.kotlin/
+
+# Estado local da CLI do Supabase (`supabase link` cria; tem o ref do projeto)
+supabase/.temp/
+supabase/.branches/
 
 # Testes das Firestore Rules (Node)
 firestore-testes/node_modules/

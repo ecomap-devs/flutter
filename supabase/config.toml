@@ -1,0 +1,7 @@
+# Configuracao das Edge Functions deste repositorio.
+#
+# O gateway do Supabase so valida JWT do proprio Supabase, e o app autentica
+# pelo Firebase. A funcao confere o ID token do Firebase por conta propria
+# (ver supabase/functions/identificar-animal/index.ts).
+[functions.identificar-animal]
+verify_jwt = false
