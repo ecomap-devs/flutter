@@ -43,7 +43,7 @@ larga (tablet), e grades que recalculam as colunas conforme o espaço.
 flowchart LR
     subgraph faces[Duas faces, um backend]
         direction TB
-        web["🌐 Site · Next.js + TypeScript<br/>semestre-4-nextjs · porte em andamento"]
+        web["🌐 Site · Next.js + TypeScript<br/>semestre-4-nextjs · no endereço principal"]
         app["📱 App Android · Flutter<br/>este repositório"]
     end
     subgraph backend[Backend]
@@ -63,11 +63,10 @@ hospedado no **Firebase Hosting** como site estático, e fica com o endereço pr
 Flutter fica com o que faz melhor: **o app Android**.
 
 > [!NOTE]
-> **Em transição.** Enquanto o site novo não vai ao ar, o endereço principal ainda serve
-> o build web **deste** repositório. Quando o Next.js assumir, saem daqui o deploy no
-> Hosting, o preview por PR e o build web da CI, e o check `Build web` sai da proteção
-> da `main` junto. O app não perde nada: o código web do Flutter continua compilando,
-> só deixa de ser publicado.
+> **A troca foi feita em 01/10/2026.** O endereço principal serve o site em Next.js, e
+> este repositório não publica mais nada no Hosting: saíram o deploy, o preview por PR,
+> o build web da CI e o check `Build web` da proteção da `main`. O código web do Flutter
+> continua compilando (`flutter run -d chrome` serve para testar), só não é publicado.
 
 **As regras do Firestore moram aqui e valem para os dois.** O banco é um só, então as
 regras são uma só: duas cópias, uma em cada repositório, acabariam divergindo.
@@ -179,16 +178,14 @@ Tudo automático, em [`.github/workflows/`](.github/workflows/):
 
 | Quando | O que roda |
 |---|---|
-| **Push ou PR** | `dart format` · `flutter analyze` · `flutter test` · build web · build APK |
-| **PR aberto** | Preview com URL própria, que expira em 7 dias *(sai na transição)* |
-| **Merge na `main`** | Testes e deploy no Firebase Hosting *(sai na transição)* |
+| **Push ou PR** | `dart format` · `flutter analyze` · `flutter test` · build APK |
 
 O **APK debug** fica anexado à execução da CI por 14 dias: dá para baixar e instalar no
 celular sem ter Flutter montado. Os secrets viram `env.json` dentro da CI e **nunca**
 entram no repositório.
 
-A `main` é protegida: PR obrigatório, **1 aprovação** e os checks `Análise e testes`,
-`Build web` e `Build APK` passando.
+A `main` é protegida: PR obrigatório, **1 aprovação** e os checks `Análise e testes` e
+`Build APK` passando.
 
 ## 📁 Estrutura
 
