@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
+import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/auth_service.dart';
+import '../services/reviews_service.dart' show maxNome;
 import '../theme/app_theme.dart';
 import 'superficie_vidro.dart';
 
@@ -29,6 +31,10 @@ class _AuthModalState extends State<AuthModal> {
   bool _cadastro = false;
   bool _carregando = false;
   String _erro = '';
+
+  /// Conta criada cujo perfil não terminou de salvar: o botão passa a
+  /// concluir o perfil em vez de tentar criar a conta de novo.
+  User? _pendente;
 
   final _nome = TextEditingController();
   final _email = TextEditingController();
@@ -74,7 +80,15 @@ class _AuthModalState extends State<AuthModal> {
 
     setState(() => _carregando = true);
     try {
-      if (_cadastro) {
+      final pendente = _pendente;
+      if (pendente != null) {
+        await widget.auth.concluirPerfil(
+          pendente,
+          nome: _nome.text,
+          foto: _bytesFoto,
+          extensaoFoto: _foto?.name.split('.').last,
+        );
+      } else if (_cadastro) {
         await widget.auth.cadastrar(
           nome: _nome.text,
           email: _email.text,
@@ -86,6 +100,15 @@ class _AuthModalState extends State<AuthModal> {
         await widget.auth.entrar(email: _email.text, senha: _senha.text);
       }
       if (mounted) Navigator.of(context).pop();
+    } on CadastroIncompleto catch (e) {
+      if (mounted) {
+        setState(() {
+          _pendente = e.usuario;
+          _erro =
+              'Sua conta foi criada, mas o perfil não terminou de salvar. '
+              'Toque em "Concluir cadastro" para tentar de novo.';
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _erro = AuthService.mensagemDeErro(e));
@@ -170,6 +193,9 @@ class _AuthModalState extends State<AuthModal> {
                   TextField(
                     controller: _nome,
                     textInputAction: TextInputAction.next,
+                    // O mesmo limite das Firestore Rules: um nome maior
+                    // deixaria a pessoa sem conseguir avaliar.
+                    maxLength: maxNome,
                     decoration: const InputDecoration(
                       hintText: 'Nome completo',
                     ),
@@ -238,6 +264,8 @@ class _AuthModalState extends State<AuthModal> {
                   child: Text(
                     _carregando
                         ? 'Aguarde...'
+                        : _pendente != null
+                        ? 'Concluir cadastro'
                         : _cadastro
                         ? 'Criar conta'
                         : 'Entrar',
@@ -245,7 +273,7 @@ class _AuthModalState extends State<AuthModal> {
                 ),
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: _carregando
+                  onPressed: _carregando || _pendente != null
                       ? null
                       : () => setState(() {
                           _cadastro = !_cadastro;

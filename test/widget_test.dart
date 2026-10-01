@@ -7,6 +7,7 @@ import 'package:ecomapbrasil/data/animais_data.dart';
 import 'package:ecomapbrasil/data/biomas_data.dart';
 import 'package:ecomapbrasil/main.dart';
 import 'package:ecomapbrasil/models/animal.dart';
+import 'package:ecomapbrasil/models/avaliacao.dart';
 import 'package:ecomapbrasil/models/bioma.dart';
 import 'package:ecomapbrasil/widgets/estrelas.dart';
 
@@ -195,8 +196,14 @@ void main() {
       expect(a.ano, 2019);
       expect(a.partes, hasLength(1));
       // No GeoJSON a ordem é [lng, lat]; no LatLng é (lat, lng).
-      expect(a.partes.first.first.latitude, closeTo(-6.71017, 0.00001));
-      expect(a.partes.first.first.longitude, closeTo(-52.4897, 0.00001));
+      expect(
+        a.partes.first.contorno.first.latitude,
+        closeTo(-6.71017, 0.00001),
+      );
+      expect(
+        a.partes.first.contorno.first.longitude,
+        closeTo(-52.4897, 0.00001),
+      );
     });
 
     test('lê MultiPolygon e guarda uma parte por pedaço', () {
@@ -227,7 +234,7 @@ void main() {
       final a = AlertaDesmatamento.doGeoJson(f);
       expect(a, isNotNull);
       expect(a!.partes, hasLength(2));
-      expect(a.partes[1].first.longitude, closeTo(-53.0, 0.00001));
+      expect(a.partes[1].contorno.first.longitude, closeTo(-53.0, 0.00001));
       // As propriedades continuam sendo as do alerta, não de cada pedaço.
       expect(a.areaHa, 71.63);
     });
@@ -287,6 +294,78 @@ void main() {
       expect(a, isNotNull);
       expect(a!.bioma, 'Desconhecido');
       expect(a.areaHa, 0);
+    });
+
+    // Revisão de 01/10/2026: 92 features do arquivo têm buracos, e eles eram
+    // descartados — a área de dentro aparecia pintada como desmatada.
+    test('guarda os anéis internos como buracos', () {
+      final f = featureValida();
+      (f['geometry'] as Map)['coordinates'] = [
+        [
+          [-53.0, -7.0],
+          [-52.0, -7.0],
+          [-52.0, -6.0],
+          [-53.0, -6.0],
+          [-53.0, -7.0],
+        ],
+        [
+          [-52.7, -6.7],
+          [-52.3, -6.7],
+          [-52.3, -6.3],
+          [-52.7, -6.7],
+        ],
+      ];
+      final a = AlertaDesmatamento.doGeoJson(f);
+      expect(a!.partes.single.contorno, hasLength(5));
+      expect(a.partes.single.buracos, hasLength(1));
+      expect(
+        a.partes.single.buracos.single.first.longitude,
+        closeTo(-52.7, 1e-9),
+      );
+    });
+
+    test('properties em formato errado não derruba a feature', () {
+      final lista = featureValida()..['properties'] = <Object>[];
+      expect(AlertaDesmatamento.doGeoJson(lista)?.bioma, 'Desconhecido');
+
+      final texto = featureValida();
+      (texto['properties'] as Map)['AREAHA'] = '71.63';
+      (texto['properties'] as Map)['ANODETEC'] = 'dois mil';
+      final a = AlertaDesmatamento.doGeoJson(texto);
+      expect(a!.areaHa, closeTo(71.63, 1e-9));
+      expect(a.ano, 0);
+    });
+  });
+
+  group('tempoRelativoDesde', () {
+    final agora = DateTime(2026, 10, 1, 12);
+    String ha(Duration d) => tempoRelativoDesde(agora.subtract(d), agora);
+
+    test('minutos, horas e dias', () {
+      expect(ha(const Duration(seconds: 30)), 'agora mesmo');
+      expect(ha(const Duration(minutes: 5)), 'há 5 min');
+      expect(ha(const Duration(hours: 3)), 'há 3h');
+      expect(ha(const Duration(days: 1)), 'há 1 dia');
+    });
+
+    // Revisão de 01/10/2026: entre 28 e 29 dias aparecia "há 0 mês".
+    test('28 e 29 dias continuam em semanas', () {
+      expect(ha(const Duration(days: 28)), 'há 4 semanas');
+      expect(ha(const Duration(days: 29)), 'há 4 semanas');
+      expect(ha(const Duration(days: 30)), 'há 1 mês');
+      expect(ha(const Duration(days: 400)), 'há 1 ano');
+    });
+  });
+
+  group('fotoConfiavel', () {
+    test('aceita só o bucket de avatares do projeto', () {
+      const nova = '${prefixoAvatares}abc/0f8e2c1a.webp';
+      const antiga = '${prefixoAvatares}abc.png';
+      expect(fotoConfiavel(nova), nova);
+      expect(fotoConfiavel(antiga), antiga);
+      expect(fotoConfiavel('https://rastreador.exemplo/pixel.png'), '');
+      expect(fotoConfiavel(123), '');
+      expect(fotoConfiavel(null), '');
     });
   });
 
