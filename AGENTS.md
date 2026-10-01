@@ -272,10 +272,11 @@ Tudo acima vale. Além disso:
   fonte oficial (PRODES/INPE, ICMBio, IBGE, MapBiomas).
 - 🟡 **Identificação por foto** (aba Fotos, 01/10/2026). O app chama a Edge Function
   `supabase/functions/identificar-animal`, que confere o ID token do Firebase e consulta
-  o Google Cloud Vision. A chave do Vision é **secret do Supabase**, nunca vai para o
-  `env.json`. **Falta publicar:** `supabase secrets set GOOGLE_VISION_API_KEY=...
-  FIREBASE_PROJECT_ID=...` e `supabase functions deploy identificar-animal`. Restrinja a
-  chave à Cloud Vision API e ponha teto de cota no Google Cloud: como o cadastro é
-  aberto, qualquer conta nova consegue gastar consultas.
+  o **Gemini** pelo nível gratuito do Google AI Studio. A chave é **secret do Supabase**
+  (`GEMINI_API_KEY`), nunca vai para o `env.json`; `GEMINI_MODEL` troca o modelo sem
+  republicar. Começou com o Cloud Vision, abandonado porque exige faturamento, e o
+  faturamento do Google Cloud no Brasil pedia CNPJ. Dois cuidados do nível gratuito: o
+  Google pode usar as fotos enviadas (a tela avisa) e a cota é por minuto e por dia —
+  como o cadastro é aberto, qualquer conta nova consegue gastá-la.
 - 🟢 **O app já foi executado** (09/09/2026), no navegador e no emulador Android, sem
   exceção nas telas. Falta confirmar o toque no mapa num aparelho Android de verdade.

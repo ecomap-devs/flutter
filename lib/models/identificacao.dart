@@ -1,163 +1,79 @@
 import 'package:flutter/foundation.dart';
 
-/// Rotulo que o Vision atribuiu a foto, com a confianca de 0 a 1.
-@immutable
-class Rotulo {
-  const Rotulo({required this.descricao, required this.confianca});
+/// Quanta certeza o Gemini declarou ter na identificacao.
+enum Confianca {
+  alta('Alta confiança'),
+  media('Confiança média'),
+  baixa('Baixa confiança');
 
-  final String descricao;
-  final double confianca;
+  const Confianca(this.rotulo);
 
-  String get confiancaFormatada => '${(confianca * 100).round()}%';
+  final String rotulo;
+
+  static Confianca? deTexto(Object? valor) => switch (valor) {
+    'alta' => alta,
+    'media' => media,
+    'baixa' => baixa,
+    _ => null,
+  };
 }
 
-/// Pagina da web onde a mesma imagem (ou uma muito parecida) aparece.
-@immutable
-class PaginaEncontrada {
-  const PaginaEncontrada({required this.titulo, required this.url});
-
-  final String titulo;
-  final String url;
-
-  /// "pt.wikipedia.org" — mais legivel que a URL inteira.
-  String get dominio => Uri.tryParse(url)?.host ?? url;
-}
-
-/// O que o Google Cloud Vision encontrou sobre a foto de um animal.
+/// O que o Gemini concluiu sobre a foto de um animal.
 ///
-/// Vem da Edge Function `identificar-animal`, que repassa `webDetection` e
-/// `labelAnnotations` da resposta do Vision sem mexer.
+/// Vem da Edge Function `identificar-animal`, que repassa o JSON do Gemini
+/// (gerado num esquema fixo) sem mexer.
 @immutable
 class Identificacao {
   const Identificacao({
-    required this.palpite,
-    required this.rotulos,
-    required this.entidades,
-    required this.paginas,
-    required this.imagensParecidas,
+    required this.ehAnimal,
+    required this.nomePopular,
+    required this.nomeCientifico,
+    required this.confianca,
+    required this.descricao,
   });
 
-  /// O "melhor palpite" do Google para a imagem, ex.: "onça-pintada".
-  final String? palpite;
+  /// `false` quando a foto nao tem animal (pessoa, objeto, paisagem).
+  final bool ehAnimal;
 
-  /// Rotulos gerais da foto ("Jaguar", "Felidae", "Wildlife"), em ingles.
-  final List<Rotulo> rotulos;
+  /// Nome popular no Brasil, ex.: "onça-pintada".
+  final String? nomePopular;
 
-  /// Entidades da web ligadas a imagem, ja na ordem de relevancia do Google.
-  final List<String> entidades;
+  final String? nomeCientifico;
+  final Confianca confianca;
 
-  final List<PaginaEncontrada> paginas;
+  /// Ate duas frases sobre o que se ve na foto.
+  final String? descricao;
 
-  /// URLs de imagens visualmente parecidas.
-  final List<String> imagensParecidas;
-
-  bool get vazia =>
-      palpite == null &&
-      rotulos.isEmpty &&
-      entidades.isEmpty &&
-      paginas.isEmpty &&
-      imagensParecidas.isEmpty;
+  /// Nada a mostrar como identificacao: sem animal ou sem nome.
+  bool get vazia => !ehAnimal || nomePopular == null;
 
   /// Le a resposta da Edge Function.
   ///
-  /// Devolve `null` se o formato geral nao for o esperado. Item malformado
-  /// dentro de uma lista e pulado, nao derruba o resto: um titulo de pagina
-  /// estranho nao pode esconder o palpite.
-  static Identificacao? daVision(Object? json) {
+  /// Devolve `null` se o formato geral nao for o esperado. Campo de texto
+  /// ausente ou estranho vira `null` e nao derruba o resto: sem nome
+  /// cientifico, o nome popular ainda vale.
+  static Identificacao? daResposta(Object? json) {
     if (json is! Map) return null;
-    final web = json['webDetection'];
-    final labels = json['labelAnnotations'];
-    if (web != null && web is! Map) return null;
-    if (labels != null && labels is! List) return null;
-    final w = web as Map? ?? const {};
-
-    String? palpite;
-    for (final p in _lista(w['bestGuessLabels'])) {
-      final texto = _texto(p['label']);
-      if (texto != null) {
-        palpite = texto;
-        break;
-      }
-    }
-
-    final rotulos = <Rotulo>[];
-    for (final l in _lista(labels)) {
-      final descricao = _texto(l['description']);
-      final score = l['score'];
-      if (descricao == null || score is! num) continue;
-      rotulos.add(
-        Rotulo(descricao: descricao, confianca: score.toDouble().clamp(0, 1)),
-      );
-    }
-
-    final entidades = <String>[];
-    for (final e in _lista(w['webEntities'])) {
-      final descricao = _texto(e['description']);
-      if (descricao != null && !entidades.contains(descricao)) {
-        entidades.add(descricao);
-      }
-    }
-
-    final paginas = <PaginaEncontrada>[];
-    for (final p in _lista(w['pagesWithMatchingImages'])) {
-      final url = _url(p['url']);
-      if (url == null) continue;
-      final titulo = _semHtml(_texto(p['pageTitle']) ?? '');
-      paginas.add(
-        PaginaEncontrada(
-          titulo: titulo.isEmpty ? Uri.parse(url).host : titulo,
-          url: url,
-        ),
-      );
-    }
-
-    // Imagens iguais primeiro, depois as parecidas; sem repetir.
-    final imagens = <String>[];
-    for (final chave in const [
-      'fullMatchingImages',
-      'partialMatchingImages',
-      'visuallySimilarImages',
-    ]) {
-      for (final i in _lista(w[chave])) {
-        final url = _url(i['url']);
-        if (url != null && !imagens.contains(url)) imagens.add(url);
-      }
-    }
+    final ehAnimal = json['ehAnimal'];
+    if (ehAnimal is! bool) return null;
 
     return Identificacao(
-      palpite: palpite,
-      rotulos: List.unmodifiable(rotulos),
-      entidades: List.unmodifiable(entidades),
-      paginas: List.unmodifiable(paginas),
-      imagensParecidas: List.unmodifiable(imagens),
+      ehAnimal: ehAnimal,
+      nomePopular: _texto(json['nomePopular'], 120),
+      nomeCientifico: _texto(json['nomeCientifico'], 120),
+      // Confianca desconhecida conta como baixa: melhor subestimar que
+      // vender certeza que o modelo nao declarou.
+      confianca: Confianca.deTexto(json['confianca']) ?? Confianca.baixa,
+      descricao: _texto(json['descricao'], 600),
     );
   }
 
-  /// So os itens que sao mapas; o resto e ignorado.
-  static Iterable<Map> _lista(Object? valor) =>
-      valor is List ? valor.whereType<Map>() : const [];
-
-  static String? _texto(Object? valor) {
+  /// Texto limpo e com teto de tamanho: a resposta vem de um modelo, e um
+  /// texto sem fim nao pode empurrar o resto da tela para fora.
+  static String? _texto(Object? valor, int maximo) {
     if (valor is! String) return null;
     final t = valor.trim();
-    return t.isEmpty ? null : t;
+    if (t.isEmpty) return null;
+    return t.length <= maximo ? t : '${t.substring(0, maximo).trimRight()}…';
   }
-
-  /// Aceita so http(s): a URL vai para `Image.network` e para a tela.
-  static String? _url(Object? valor) {
-    final texto = _texto(valor);
-    if (texto == null) return null;
-    final uri = Uri.tryParse(texto);
-    if (uri == null || !uri.hasAuthority) return null;
-    if (uri.scheme != 'http' && uri.scheme != 'https') return null;
-    return texto;
-  }
-
-  /// O Vision devolve o titulo com o termo buscado em `<b>...</b>`.
-  static String _semHtml(String texto) => texto
-      .replaceAll(RegExp(r'<[^>]*>'), '')
-      .replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'")
-      .trim();
 }

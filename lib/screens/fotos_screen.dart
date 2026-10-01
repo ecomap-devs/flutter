@@ -9,9 +9,9 @@ import '../services/identificacao_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/superficie_vidro.dart';
 
-/// Tire uma foto de um animal e veja o que o Google encontra sobre ele.
+/// Tire uma foto de um animal e veja que animal o Gemini acha que e.
 ///
-/// Exige login: cada consulta gasta cota paga do Cloud Vision, e a Edge
+/// Exige login: cada consulta gasta a cota do projeto no Gemini, e a Edge
 /// Function recusa quem nao manda um ID token do Firebase.
 class FotosScreen extends StatefulWidget {
   const FotosScreen({
@@ -67,6 +67,9 @@ class _FotosScreenState extends State<FotosScreen> {
       final r = await _servico.identificar(bytes);
       if (mounted) setState(() => _resultado = r);
     } catch (e) {
+      // A tela mostra uma mensagem amigavel; o log guarda o erro real, com o
+      // status e o corpo da resposta, para dar para diagnosticar pelo adb.
+      debugPrint('Identificacao falhou: $e');
       if (mounted) {
         setState(() => _erro = IdentificacaoService.mensagemDeErro(e));
       }
@@ -97,8 +100,17 @@ class _FotosScreenState extends State<FotosScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Tire uma foto e o Google procura o animal na web.',
+                  'Tire uma foto e a inteligência artificial do Google '
+                  'diz que animal é.',
                   style: TextStyle(fontSize: 12, color: AppCores.textoSuave),
+                ),
+                const SizedBox(height: 4),
+                // O nivel gratuito do Gemini permite ao Google usar o que e
+                // enviado; quem manda a foto precisa saber disso antes.
+                const Text(
+                  'A foto é enviada ao Gemini, do Google, que pode usá-la para '
+                  'melhorar os serviços dele. Não envie fotos de pessoas.',
+                  style: TextStyle(fontSize: 11, color: AppCores.textoSuave),
                 ),
                 const SizedBox(height: 18),
                 if (widget.usuario == null)
@@ -221,11 +233,13 @@ class _Resultado extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = identificacao;
     if (r.vazia) {
-      return const SuperficieVidro(
+      return SuperficieVidro(
         child: Text(
-          'O Google não encontrou nada sobre esta foto. '
-          'Tente uma imagem mais nítida, com o animal em destaque.',
-          style: TextStyle(fontSize: 13, color: AppCores.textoMedio),
+          r.ehAnimal
+              ? 'Parece haver um animal, mas não deu para dizer qual. '
+                    'Tente uma imagem mais nítida, com o animal em destaque.'
+              : 'Não encontramos nenhum animal nesta foto.',
+          style: const TextStyle(fontSize: 13, color: AppCores.textoMedio),
         ),
       );
     }
@@ -234,76 +248,46 @@ class _Resultado extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (r.palpite != null) ...[
-            const Text(
-              'Melhor palpite',
-              style: TextStyle(fontSize: 12, color: AppCores.textoSuave),
+          const Text(
+            'Parece ser',
+            style: TextStyle(fontSize: 12, color: AppCores.textoSuave),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            r.nomePopular!,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppCores.verde,
             ),
+          ),
+          if (r.nomeCientifico != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              r.nomeCientifico!,
+              style: const TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: AppCores.textoMedio,
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Chip(label: Text(r.confianca.rotulo)),
+          if (r.descricao != null) ...[
+            const SizedBox(height: 14),
+            const Text('Por quê', style: _titulo),
             const SizedBox(height: 4),
             Text(
-              r.palpite!,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppCores.verde,
-              ),
+              r.descricao!,
+              style: const TextStyle(fontSize: 13, color: AppCores.textoMedio),
             ),
-            const SizedBox(height: 18),
           ],
-          if (r.entidades.isNotEmpty || r.rotulos.isNotEmpty) ...[
-            const Text('Relacionado', style: _titulo),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final e in r.entidades.take(6)) Chip(label: Text(e)),
-                for (final l in r.rotulos)
-                  Chip(label: Text('${l.descricao} · ${l.confiancaFormatada}')),
-              ],
-            ),
-            const SizedBox(height: 18),
-          ],
-          if (r.imagensParecidas.isNotEmpty) ...[
-            const Text('Imagens parecidas', style: _titulo),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 110,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: r.imagensParecidas.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, i) => ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    r.imagensParecidas[i],
-                    width: 110,
-                    height: 110,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      width: 110,
-                      height: 110,
-                      color: AppCores.verdeFundo,
-                      child: const Icon(Icons.pets, color: AppCores.verde),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-          ],
-          if (r.paginas.isNotEmpty) ...[
-            const Text('Onde aparece na web', style: _titulo),
-            const SizedBox(height: 4),
-            for (final p in r.paginas)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: const Icon(Icons.public, color: AppCores.verde),
-                title: Text(p.titulo, maxLines: 2),
-                subtitle: SelectableText(p.dominio),
-              ),
-          ],
+          const SizedBox(height: 14),
+          const Text(
+            'Identificação feita por inteligência artificial: pode errar.',
+            style: TextStyle(fontSize: 11, color: AppCores.textoSuave),
+          ),
         ],
       ),
     );

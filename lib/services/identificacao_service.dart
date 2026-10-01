@@ -18,10 +18,10 @@ class IdentificacaoException implements Exception {
 }
 
 /// Manda a foto para a Edge Function `identificar-animal`, que consulta o
-/// Google Cloud Vision.
+/// Gemini (Google AI Studio).
 ///
-/// O app nunca fala com o Vision direto: a chave e de API paga e so vive no
-/// servidor. Aqui vai apenas o ID token do Firebase, que a funcao confere.
+/// O app nunca fala com o Gemini direto: a chave so vive no servidor. Aqui vai
+/// apenas o ID token do Firebase, que a funcao confere.
 class IdentificacaoService {
   IdentificacaoService({FirebaseAuth? auth, SupabaseClient? supabase})
     : _authInjetado = auth,
@@ -50,7 +50,7 @@ class IdentificacaoService {
       headers: {'Authorization': 'Bearer $token'},
     );
 
-    final resultado = Identificacao.daVision(resposta.data);
+    final resultado = Identificacao.daResposta(resposta.data);
     if (resultado == null) {
       throw const IdentificacaoException(
         'Resposta inesperada do servidor. Tente de novo.',
