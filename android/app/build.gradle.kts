@@ -8,9 +8,11 @@ plugins {
 
 // Credenciais do keystore de release, vindas de android/key.properties.
 //
-// O arquivo esta no .gitignore. Sem ele o build de release continua
-// funcionando: cai no keystore de debug, como era antes. Isso e proposital —
-// quem so quer rodar o app nao precisa ter a chave de publicacao.
+// O arquivo esta no .gitignore. Sem ele, o build de RELEASE falha de
+// proposito (veja o fim do arquivo). Ate 01/10/2026 ele caia no keystore de
+// debug, que e publico e esta neste repositorio: qualquer pessoa conseguiria
+// assinar um APK com a mesma identidade e instala-lo como "atualizacao" por
+// cima do app de alguem. Quem so quer rodar o app usa o build de debug.
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
@@ -64,7 +66,11 @@ android {
 
         if (temChaveDeRelease) {
             create("release") {
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                // Relativo a android/, como o key.properties e escrito
+                // ("keystore/release.jks"). Com `file()` o Gradle procurava em
+                // android/app/ e o release com a chave de verdade nunca saia —
+                // o que ficava escondido enquanto a falta de chave caia no debug.
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
@@ -74,10 +80,24 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (temChaveDeRelease) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (temChaveDeRelease) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+}
+
+// Release sem a chave de release nao sai: falha com a explicacao, em vez de
+// sair assinado com a chave de debug publica.
+tasks.configureEach {
+    if (name in setOf("packageRelease", "bundleRelease", "signReleaseBundle")) {
+        doFirst {
+            if (!temChaveDeRelease) {
+                throw GradleException(
+                    "Build de release sem android/key.properties. A chave de " +
+                        "debug e publica e nao pode assinar release. Para testar, " +
+                        "use o build de debug (flutter build apk --debug)."
+                )
             }
         }
     }
