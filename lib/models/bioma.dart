@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart' show LatLngBounds;
 import 'package:latlong2/latlong.dart';
 
 import '../theme/app_theme.dart';
 
-/// Bioma brasileiro, com o(s) poligono(s) simplificado(s) usados no mapa.
+/// Bioma brasileiro, com o contorno oficial do IBGE simplificado para o mapa.
 ///
-/// A Mata Atlantica e MultiPolygon na fonte — por isso `poligonos` e uma
-/// lista de aneis, e nao um anel so.
+/// Quase todo bioma e MultiPolygon na fonte (ilhas, pedacos separados) — por
+/// isso `poligonos` e uma lista de aneis, e nao um anel so.
 @immutable
 class Bioma {
   const Bioma({
@@ -15,13 +16,21 @@ class Bioma {
     required this.percentualDesmatado,
     required this.descricao,
     required this.poligonos,
+    this.buracos = const [],
   });
 
   final String nome;
   final int areaKm2;
   final int percentualDesmatado;
   final String descricao;
+
+  /// Os contornos externos de cada parte do bioma.
   final List<List<LatLng>> poligonos;
+
+  /// Areas cercadas pelo bioma que o IBGE nao conta como bioma: as massas
+  /// d'agua continentais, como a represa de Balbina, no meio da Amazonia. Um
+  /// ponto aqui dentro NAO e do bioma.
+  final List<List<LatLng>> buracos;
 
   Color get cor => AppCores.biomasMapa[nome] ?? AppCores.verde;
 
@@ -39,18 +48,17 @@ class Bioma {
 
   /// O bioma mais especifico da lista que contem o ponto, ou `null`.
   ///
-  /// Nao da para pegar o primeiro que contem: os poligonos deste projeto sao
-  /// retangulos grosseiros herdados do React e **se sobrepoem**. Sao Paulo cai
-  /// dentro do Cerrado E da Mata Atlantica, e escolher pelo primeiro da lista
-  /// escolheria pela ordem do arquivo `biomas_data.dart`, que nao quer dizer
-  /// nada — daria Cerrado.
-  ///
-  /// Entao ganha o **menor anel** que contem o ponto, que e o mais especifico.
-  /// Para Sao Paulo: Cerrado 247,2 contra Mata Atlantica 157,3.
+  /// Ate 01/10/2026 os poligonos eram retangulos herdados do React e se
+  /// sobrepunham muito (Sao Paulo caia no Cerrado E na Mata Atlantica). Com o
+  /// limite do IBGE quase nao ha sobreposicao, mas a simplificacao ainda deixa
+  /// frestas e encostos de alguns quilometros na fronteira. Entao continua
+  /// ganhando o **menor anel** que contem o ponto, que e o mais especifico, em
+  /// vez do primeiro da lista — cuja ordem nao quer dizer nada.
   static Bioma? maisEspecificoEm(List<Bioma> lista, LatLng ponto) {
     Bioma? escolhido;
     var menorArea = double.infinity;
     for (final b in lista) {
+      if (b._emBuraco(ponto)) continue;
       for (final anel in b.poligonos) {
         if (!_anelContem(anel, ponto)) continue;
         final area = _areaDoAnel(anel);
@@ -79,19 +87,34 @@ class Bioma {
 
   /// O ponto caiu dentro deste bioma?
   ///
-  /// Existe porque os poligonos do mapa sao invisiveis (como eram no React) e
-  /// as etiquetas sairam: sem isto, no celular — que nao tem a lista lateral —
-  /// nao haveria como selecionar bioma nenhum.
+  /// E o que resolve o toque no mapa: no celular, que nao tem a lista
+  /// lateral, tocar no bioma e o jeito principal de seleciona-lo.
   ///
   /// Algoritmo do raio: conta quantas vezes uma semirreta saindo do ponto
-  /// cruza as arestas do anel. Impar = dentro. Como sao 6 biomas de poucos
-  /// vertices, roda a cada toque sem custo.
+  /// cruza as arestas do anel. Impar = dentro. Sao cerca de mil vertices no
+  /// total, entao roda a cada toque sem custo perceptivel.
   bool contem(LatLng ponto) {
+    if (_emBuraco(ponto)) return false;
     for (final anel in poligonos) {
       if (_anelContem(anel, ponto)) return true;
     }
     return false;
   }
+
+  bool _emBuraco(LatLng ponto) => buracos.any((b) => _anelContem(b, ponto));
+
+  /// Os buracos que ficam dentro de um contorno — para desenhar cada parte
+  /// com os seus. O gerador guarda os buracos numa lista so; como buraco de
+  /// bioma nao cruza a borda, basta ver onde cai o primeiro ponto.
+  List<List<LatLng>> buracosDe(List<LatLng> contorno) => [
+    for (final b in buracos)
+      if (b.isNotEmpty && _anelContem(contorno, b.first)) b,
+  ];
+
+  /// O retangulo que envolve todas as partes — para a camera enquadrar o
+  /// bioma inteiro, do Pantanal a Amazonia, sem chutar zoom.
+  LatLngBounds get limites =>
+      LatLngBounds.fromPoints([for (final anel in poligonos) ...anel]);
 
   static bool _anelContem(List<LatLng> anel, LatLng p) {
     if (anel.length < 3) return false;
@@ -166,6 +189,20 @@ class AlertaDesmatamento {
   /// `MultiPolygon`. Sao 1.756 dos 18.262 alertas do arquivo — e justamente os
   /// grandes, porque area grande e a que tem chance de se partir.
   final List<ParteAlerta> partes;
+
+  /// Media dos vertices do primeiro contorno.
+  ///
+  /// Com o Brasil inteiro na tela, um alerta tem menos de um pixel e o
+  /// poligono some; o mapa desenha um ponto aqui no lugar dele.
+  LatLng get centro {
+    final anel = partes.first.contorno;
+    var lat = 0.0, lng = 0.0;
+    for (final p in anel) {
+      lat += p.latitude;
+      lng += p.longitude;
+    }
+    return LatLng(lat / anel.length, lng / anel.length);
+  }
 
   /// Le uma `Feature` do GeoJSON. Aceita `Polygon` e `MultiPolygon`.
   ///
