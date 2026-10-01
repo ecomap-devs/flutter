@@ -77,24 +77,38 @@ void main() {
       );
     });
 
-    test('Mata Atlântica preserva os três polígonos do MultiPolygon', () {
-      final ma = biomas.firstWhere((b) => b.nome == 'Mata Atlântica');
-      expect(ma.poligonos, hasLength(3));
-    });
-
-    test('todo anel é fechado e tem ao menos 3 pontos', () {
+    test('todo bioma tem ao menos uma parte', () {
       for (final b in biomas) {
-        for (final anel in b.poligonos) {
-          expect(anel.length, greaterThanOrEqualTo(3), reason: b.nome);
-          expect(anel.first, anel.last, reason: '${b.nome}: anel não fecha');
-        }
+        expect(b.poligonos, isNotEmpty, reason: b.nome);
       }
     });
+
+    test(
+      'todo anel, contorno ou buraco, é fechado e tem ao menos 3 pontos',
+      () {
+        for (final b in biomas) {
+          for (final anel in [...b.poligonos, ...b.buracos]) {
+            expect(anel.length, greaterThanOrEqualTo(3), reason: b.nome);
+            expect(anel.first, anel.last, reason: '${b.nome}: anel não fecha');
+          }
+        }
+      },
+    );
 
     test('centro cai dentro do território brasileiro', () {
       for (final b in biomas) {
         expect(b.centro.latitude, inInclusiveRange(-34, 6), reason: b.nome);
         expect(b.centro.longitude, inInclusiveRange(-74, -34), reason: b.nome);
+      }
+    });
+
+    test('limites envolvem todas as partes do bioma', () {
+      for (final b in biomas) {
+        for (final anel in b.poligonos) {
+          for (final p in anel) {
+            expect(b.limites.contains(p), isTrue, reason: b.nome);
+          }
+        }
       }
     });
 
@@ -105,27 +119,36 @@ void main() {
       expect(pantanal.areaFormatada, contains('mil km²'));
     });
 
-    // `contem` é o que substituiu as etiquetas sobre o mapa. No celular não há
-    // lista lateral, então sem isto não há como selecionar bioma nenhum.
-    test('contem: o centro cai dentro, para bioma de uma peça só', () {
-      final umaPeca = biomas.where((b) => b.poligonos.length == 1);
-      expect(umaPeca, isNotEmpty);
-      for (final b in umaPeca) {
-        expect(b.contem(b.centro), isTrue, reason: b.nome);
+    // Com o limite do IBGE, cada cidade abaixo cai em um bioma só. Com os
+    // retângulos antigos, São Paulo caía no Cerrado e na Mata Atlântica.
+    const cidades = {
+      // Manaus fica na margem do rio, que o IBGE separa como massa d'água;
+      // por isso o ponto da Amazônia é no interior, longe da calha.
+      'Interior do Amazonas': (LatLng(-6.00, -60.00), 'Amazônia'),
+      'Brasília': (LatLng(-15.79, -47.88), 'Cerrado'),
+      'Salgueiro (PE)': (LatLng(-8.07, -39.12), 'Caatinga'),
+      'São Paulo': (LatLng(-23.55, -46.63), 'Mata Atlântica'),
+      'Nhecolândia (MS)': (LatLng(-18.90, -56.60), 'Pantanal'),
+      'Bagé (RS)': (LatLng(-31.33, -54.10), 'Pampa'),
+    };
+
+    test('contem: cada cidade cai no seu bioma, e só nele', () {
+      for (final MapEntry(key: cidade, value: (ponto, esperado))
+          in cidades.entries) {
+        final donos = biomas.where((b) => b.contem(ponto)).map((b) => b.nome);
+        expect(donos, [esperado], reason: cidade);
       }
     });
 
-    test('contem: o centro da Mata Atlântica cai FORA dela', () {
-      // Não é defeito de `contem`, é o que `centro` é: média dos vértices de
-      // todos os anéis. A Mata Atlântica tem três peças distantes — a faixa
-      // costeira do Nordeste e o bloco Sudeste/Sul — e a média cai no vão
-      // entre elas. Vale como aviso: `centro` serve de alvo de câmera, não
-      // como ponto representativo do bioma.
-      final ma = biomas.firstWhere((b) => b.nome == 'Mata Atlântica');
-      expect(ma.poligonos, hasLength(3));
-      expect(ma.contem(ma.centro), isFalse);
-      // Mas um ponto real dentro da peça Sudeste/Sul é reconhecido.
-      expect(ma.contem(const LatLng(-23.55, -46.63)), isTrue); // São Paulo
+    test('maisEspecificoEm: cada cidade devolve o seu bioma', () {
+      for (final MapEntry(key: cidade, value: (ponto, esperado))
+          in cidades.entries) {
+        expect(
+          Bioma.maisEspecificoEm(biomas, ponto)?.nome,
+          esperado,
+          reason: cidade,
+        );
+      }
     });
 
     test('contem: ponto no Atlântico não cai em bioma nenhum', () {
@@ -135,25 +158,8 @@ void main() {
       }
     });
 
-    // Os polígonos se sobrepõem, então "contém" não basta para escolher.
-    test('maisEspecificoEm: São Paulo é Mata Atlântica, não Cerrado', () {
-      const sp = LatLng(-23.55, -46.63);
-      final donos = biomas.where((b) => b.contem(sp)).map((b) => b.nome);
-      // A sobreposição é real: os dois contêm o ponto.
-      expect(donos, containsAll(<String>['Cerrado', 'Mata Atlântica']));
-      // E o Cerrado vem antes na lista, então pegar o primeiro daria errado.
-      expect(Bioma.maisEspecificoEm(biomas, sp)?.nome, 'Mata Atlântica');
-    });
-
     test('maisEspecificoEm: ponto no Atlântico não devolve bioma', () {
       expect(Bioma.maisEspecificoEm(biomas, const LatLng(-20, -25)), isNull);
-    });
-
-    test('maisEspecificoEm: o meio da Amazônia é Amazônia', () {
-      expect(
-        Bioma.maisEspecificoEm(biomas, const LatLng(-4, -63))?.nome,
-        'Amazônia',
-      );
     });
 
     test('contem: a Amazônia não engole um ponto do Sul', () {
@@ -161,8 +167,50 @@ void main() {
       // Porto Alegre.
       expect(amazonia.contem(const LatLng(-30.03, -51.23)), isFalse);
     });
-  });
 
+    // O IBGE tira as massas d'água dos biomas, e a represa de Balbina vira um
+    // buraco na Amazônia. Ponto no buraco não é do bioma, nem para `contem`
+    // nem para `maisEspecificoEm`.
+    test('buraco: ponto no buraco não pertence ao bioma que o cerca', () {
+      const externo = [
+        LatLng(0, 0),
+        LatLng(0, 10),
+        LatLng(-10, 10),
+        LatLng(-10, 0),
+        LatLng(0, 0),
+      ];
+      const buraco = [
+        LatLng(-4, 4),
+        LatLng(-4, 6),
+        LatLng(-6, 6),
+        LatLng(-6, 4),
+        LatLng(-4, 4),
+      ];
+      const b = Bioma(
+        nome: 'Teste',
+        areaKm2: 1,
+        percentualDesmatado: 0,
+        descricao: '',
+        poligonos: [externo],
+        buracos: [buraco],
+      );
+      expect(b.contem(const LatLng(-5, 5)), isFalse);
+      expect(b.contem(const LatLng(-2, 2)), isTrue);
+      expect(Bioma.maisEspecificoEm([b], const LatLng(-5, 5)), isNull);
+      expect(b.buracosDe(externo), [buraco]);
+      expect(b.buracosDe(buraco), isEmpty);
+    });
+
+    test("a Amazônia traz a massa d'água do IBGE como buraco", () {
+      final amazonia = biomas.firstWhere((b) => b.nome == 'Amazônia');
+      expect(amazonia.buracos, isNotEmpty);
+      // E o desenho acha o contorno de cada buraco.
+      final ligados = [
+        for (final c in amazonia.poligonos) ...amazonia.buracosDe(c),
+      ];
+      expect(ligados, hasLength(amazonia.buracos.length));
+    });
+  });
   group('AlertaDesmatamento.doGeoJson', () {
     Map<String, dynamic> featureValida() => {
       'type': 'Feature',
