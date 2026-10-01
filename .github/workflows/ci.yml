@@ -7,6 +7,14 @@ on:
   pull_request:
     branches: [main]
 
+# O token da CI so le o repositorio. Revisao de 01/10/2026: sem esta linha,
+# valia o padrao do GitHub, que pode dar escrita a qualquer codigo da CI.
+permissions:
+  contents: read
+
+# As actions sao fixadas por SHA (o comentario diz a versao): uma tag pode ser
+# movida para outro commit; um SHA, nao.
+
 # Cancela execucao antiga quando chega commit novo no mesmo branch/PR.
 concurrency:
   group: ci-${{ github.ref }}
@@ -20,9 +28,9 @@ jobs:
     name: Análise e testes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -44,15 +52,20 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     needs: analise-e-testes
+    # PR vindo de fork nao recebe os secrets. Antes o job falhava sempre nesse
+    # caso; agora compila sem credenciais (o app abre na tela que lista o que
+    # falta) e nao publica o APK.
+    env:
+      CONFIAVEL: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -61,6 +74,7 @@ jobs:
       - run: flutter pub get
 
       - name: Montar env.json a partir dos secrets
+        if: env.CONFIAVEL == 'true'
         env:
           FIREBASE_API_KEY_WEB: ${{ secrets.FIREBASE_API_KEY_WEB }}
           FIREBASE_API_KEY_ANDROID: ${{ secrets.FIREBASE_API_KEY_ANDROID }}
@@ -102,13 +116,48 @@ jobs:
           }' > env.json
 
       - name: Build APK (debug)
-        run: flutter build apk --debug --dart-define-from-file=env.json
+        run: |
+          if [ -f env.json ]; then
+            flutter build apk --debug --dart-define-from-file=env.json
+          else
+            echo "::notice::PR de fork: APK compilado sem credenciais, e nao publicado."
+            flutter build apk --debug
+          fi
 
       # O APK fica anexado a execucao por 14 dias — da para o grupo baixar e
       # instalar no celular sem precisar de ambiente Flutter montado.
       - name: Publicar APK como artefato
-        uses: actions/upload-artifact@v4
+        if: env.CONFIAVEL == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ecomapbrasil-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+  # As firestore.rules valem para o app e para o site. Cada mudanca nelas passa
+  # pelos testes no emulador (firestore-testes/), com os ataques da revisao de
+  # 01/10/2026 como casos.
+  regras:
+    name: Regras do Firestore
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firestore-testes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: firestore-testes/package-lock.json
+
+      - run: npm ci
+
+      - name: Testar as regras no emulador
+        run: npm test
