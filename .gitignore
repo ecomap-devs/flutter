@@ -82,3 +82,7 @@ env.json
 # Entrou num commit por acidente em 09/09 justamente porque um `flutter run`
 # estava rodando na hora do `git add -A`.
 android/.kotlin/
+
+# Estado local da CLI do Supabase (`supabase link` cria; tem o ref do projeto)
+supabase/.temp/
+supabase/.branches/

@@ -264,5 +264,12 @@ Tudo acima vale. Além disso:
   (1,48 MB comprimido). Alternativas: servir remoto ou simplificar polígonos.
 - 🟡 **Dados de referência hardcoded** em `lib/data/`. Próxima etapa é trocar por
   fonte oficial (PRODES/INPE, ICMBio, IBGE, MapBiomas).
+- 🟡 **Identificação por foto** (aba Fotos, 01/10/2026). O app chama a Edge Function
+  `supabase/functions/identificar-animal`, que confere o ID token do Firebase e consulta
+  o Google Cloud Vision. A chave do Vision é **secret do Supabase**, nunca vai para o
+  `env.json`. **Falta publicar:** `supabase secrets set GOOGLE_VISION_API_KEY=...
+  FIREBASE_PROJECT_ID=...` e `supabase functions deploy identificar-animal`. Restrinja a
+  chave à Cloud Vision API e ponha teto de cota no Google Cloud: como o cadastro é
+  aberto, qualquer conta nova consegue gastar consultas.
 - 🟢 **O app já foi executado** (09/09/2026), no navegador e no emulador Android, sem
   exceção nas telas. Falta confirmar o toque no mapa num aparelho Android de verdade.
