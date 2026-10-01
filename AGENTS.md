@@ -7,8 +7,8 @@ de IA (Claude Code, Copilot, Codex, Gemini). Vale para todos igualmente.
 
 ## O projeto em três linhas
 
-App Flutter (web + Android) sobre desmatamento e fauna ameaçada nos biomas
-brasileiros. Projeto Interdisciplinar da FATEC, migrado de uma versão React do
+App Android em Flutter sobre desmatamento e fauna ameaçada nos biomas brasileiros. O
+site é o [semestre-4-nextjs](https://github.com/ecomap-devs/semestre-4-nextjs), no mesmo backend. Projeto Interdisciplinar da FATEC, migrado de uma versão React do
 semestre anterior. Backend: Firebase (Auth, Firestore) e Supabase (Storage).
 
 ---
@@ -22,7 +22,7 @@ As credenciais vivem em `env.json`, que está no `.gitignore`, e chegam ao app p
 
 ```bash
 flutter run   --dart-define-from-file=env.json
-flutter build web --dart-define-from-file=env.json
+flutter build apk --dart-define-from-file=env.json
 ```
 
 Já está no `.gitignore`, e **não tire de lá**:
@@ -167,7 +167,7 @@ direto e exige, antes do merge:
 | Pull request obrigatório | sim |
 | Aprovações necessárias | **1** |
 | Review antiga é descartada ao subir commit novo | sim |
-| Checks que precisam passar | `Análise e testes`, `Build web`, `Build APK` |
+| Checks que precisam passar | `Análise e testes`, `Build APK` |
 | Conversas do review resolvidas | sim |
 | Force push e deleção da branch | bloqueados |
 
@@ -202,8 +202,8 @@ Um commit por ideia. Não misture correção de bug com refatoração.
 
 ### Pull requests
 - Descreva o que muda e por quê.
-- A CI precisa passar (análise, testes, build web e APK).
-- Cada PR ganha uma **URL de preview** automática — cole no PR se ajudar a revisão.
+- A CI precisa passar (análise, testes e APK).
+- O APK de cada PR fica como artefato da CI: dá para instalar e testar antes de aprovar.
 - Peça revisão de pelo menos uma pessoa do grupo.
 
 ---
@@ -214,15 +214,15 @@ Tudo automático, em `.github/workflows/`:
 
 | Quando | O que acontece |
 |---|---|
-| Push ou PR | `dart format`, `flutter analyze`, `flutter test`, build web e APK |
-| PR aberto | Preview em URL própria, expira em 7 dias |
-| Merge na `main` | Testes e deploy no Firebase Hosting |
+| Push ou PR | `dart format`, `flutter analyze`, `flutter test` e build do APK |
 
 O APK debug fica anexado à execução da CI por 14 dias — dá para baixar e instalar
 no celular sem ter Flutter montado.
 
-**Não rode `firebase deploy` da sua máquina.** O deploy sai da `main`, pela CI, a
-partir de código revisado. Deploy manual de árvore local não é reproduzível.
+**Este repositório não publica nada no Firebase Hosting** desde 01/10/2026: o endereço
+principal é do site em Next.js, e um `firebase deploy` daqui o derrubaria. Por isso o
+`firebase.json` não tem mais a seção `hosting`. O único deploy que sai daqui é o das
+regras: `firebase deploy --only firestore:rules`.
 
 ---
 
@@ -260,11 +260,9 @@ Tudo acima vale. Além disso:
   coleção**; `ReviewsService.publicar` copia `displayName` e `photoURL` do Auth. **Falta
   limpar os documentos antigos**, que ainda têm o e-mail gravado; parar de escrever não
   apaga o que já está lá.
-- 🟡 **GeoJSON de 6,7 MB embarcado** nos assets. Funciona, mas engorda o APK e o
-  visitante da web baixa tudo. Alternativas: servir remoto ou simplificar polígonos.
+- 🟡 **GeoJSON de 6,7 MB embarcado** nos assets. Funciona, mas engorda o APK
+  (1,48 MB comprimido). Alternativas: servir remoto ou simplificar polígonos.
 - 🟡 **Dados de referência hardcoded** em `lib/data/`. Próxima etapa é trocar por
   fonte oficial (PRODES/INPE, ICMBio, IBGE, MapBiomas).
-- 🟠 **O app nunca foi executado.** Tudo foi verificado por `analyze`, testes, build
-  e resposta de API — nenhuma tela foi aberta em emulador ou navegador. O mapa e os
-  quatro gráficos em `CustomPainter` nunca desenharam um pixel. Antes de qualquer
-  funcionalidade nova, rodar e olhar.
+- 🟢 **O app já foi executado** (09/09/2026), no navegador e no emulador Android, sem
+  exceção nas telas. Falta confirmar o toque no mapa num aparelho Android de verdade.
