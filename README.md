@@ -17,7 +17,8 @@ para fazer a respeito. É o Projeto Interdisciplinar de um grupo de cinco da FAT
 este repositório é **o app Android**, em Flutter.
 
 O projeto tem duas faces sobre o mesmo backend: o **app**, daqui, e o **site**, que volta
-a ser React, agora em Next.js, num repositório próprio. Uma avaliação feita no celular
+a ser React, agora em Next.js, no
+[semestre-4-nextjs](https://github.com/ecomap-devs/semestre-4-nextjs). Uma avaliação feita no celular
 aparece no site, e vice-versa.
 
 <p align="center">
@@ -42,7 +43,7 @@ larga (tablet), e grades que recalculam as colunas conforme o espaço.
 flowchart LR
     subgraph faces[Duas faces, um backend]
         direction TB
-        web["🌐 Site · Next.js + TypeScript<br/>ecomap-devs/web · em construção"]
+        web["🌐 Site · Next.js + TypeScript<br/>semestre-4-nextjs · porte em andamento"]
         app["📱 App Android · Flutter<br/>este repositório"]
     end
     subgraph backend[Backend]
@@ -86,8 +87,8 @@ regras são uma só: duas cópias, uma em cada repositório, acabariam divergind
 > Pré-requisitos: Flutter 3.47+ e o Android SDK (emulador ou celular com depuração USB).
 
 ```bash
-git clone https://github.com/ecomap-devs/flutter.git
-cd flutter
+git clone https://github.com/ecomap-devs/semestre-4-flutter.git
+cd semestre-4-flutter
 flutter pub get
 
 cp env.example.json env.json      # e preencha os valores
