@@ -30,19 +30,51 @@ import { createRemoteJWKSet, jwtVerify } from "npm:jose@5";
 
 const CHAVE_GEMINI = Deno.env.get("GEMINI_API_KEY") ?? "";
 const PROJETO_FIREBASE = Deno.env.get("FIREBASE_PROJECT_ID") ?? "";
-const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-latest";
+// O lite e o principal desde 02/10/2026. Medido no site: o flash-latest
+// estourou 25 s (antes do teto, a chamada chegou a 106 s), e o
+// flash-lite-latest (gemini-3.5-flash-lite) respondeu certo em 1,8 s, sem
+// gastar token pensando. O Flash completo fica de reserva, para quando o lite
+// estiver sobrecarregado.
+const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-lite-latest";
 const MODELO_RESERVA = Deno.env.get("GEMINI_MODEL_RESERVA") ||
-  "gemini-flash-lite-latest";
+  "gemini-flash-latest";
 
-// O nivel gratuito responde 503 ("modelo sobrecarregado") com frequencia, e
-// quase sempre passa em segundos. Antes de desistir: mais duas tentativas no
-// modelo principal e uma no reserva, mais leve e menos disputado.
-const TENTATIVAS = [
-  { modelo: MODELO, espera: 0 },
-  { modelo: MODELO, espera: 800 },
-  { modelo: MODELO, espera: 1600 },
-  { modelo: MODELO_RESERVA, espera: 0 },
-];
+// A demora do nivel gratuito e fila, nao modelo: o mesmo flash-lite levou
+// 1,8 s num teste e 20 s no seguinte, sem gastar token pensando. Esperar a
+// fila andar nao adianta; o que adianta e nao depender de uma fila so. Se o
+// principal nao responder em PARALELO_APOS_MS, o reserva e chamado junto, e
+// vale a primeira resposta boa — a outra e cancelada. Se o principal falhar
+// antes disso (503, por exemplo), o reserva e chamado na hora.
+//
+// O custo: nos casos lentos, a mesma foto gasta duas consultas da cota.
+const PARALELO_APOS_MS = 6_000;
+
+// Teto de tempo. No primeiro teste do site a chamada levou 106 s: sem limite,
+// uma chamada lenta segura a tela pelo tempo que o Google quiser.
+const TETO_TOTAL_MS = 50_000;
+
+/** Status que valem nova rodada: sobrecarga e erro interno do Google. */
+const PASSAGEIRO = new Set([500, 503]);
+
+/** Quanto cada chamada levou — volta na resposta para diagnosticar demora. */
+type Tentativa = {
+  modelo: string;
+  status: number | "tempo-esgotado" | "cancelada" | "erro-rede";
+  ms: number;
+};
+
+/**
+ * Uma chamada terminada, com o corpo JA LIDO. Ler aqui dentro, antes da
+ * disputa, e de proposito: a primeira versao da corrida devolvia o `Response`
+ * e cancelava os perdedores com um sinal compartilhado — que tambem cortava a
+ * leitura do corpo do vencedor. A funcao quebrava, a resposta de erro da
+ * plataforma vinha sem CORS e o site mostrava "Sem conexao".
+ */
+type Resultado = {
+  tentativa: Tentativa;
+  /** Presente quando o Google respondeu: status HTTP e corpo em texto. */
+  http?: { status: number; corpo: string };
+};
 
 // Chaves publicas que assinam os ID tokens do Firebase Auth.
 const CHAVES_FIREBASE = createRemoteJWKSet(
@@ -114,7 +146,97 @@ function tipoDaImagem(base64: string): string {
   return "image/jpeg";
 }
 
-Deno.serve(async (req) => {
+/**
+ * Uma chamada ao Gemini, com o corpo lido ate o fim. Nunca lanca: falha vira
+ * status na tentativa.
+ */
+async function chamarGemini(
+  modelo: string,
+  corpo: string,
+  cancelar: AbortSignal,
+  prazo: number,
+): Promise<Resultado> {
+  const inicio = Date.now();
+  const limite = AbortSignal.timeout(Math.max(1, prazo - inicio));
+  try {
+    // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
+    const resposta = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": CHAVE_GEMINI,
+        },
+        body: corpo,
+        signal: AbortSignal.any([cancelar, limite]),
+      },
+    );
+    const texto = await resposta.text();
+    return {
+      tentativa: { modelo, status: resposta.status, ms: Date.now() - inicio },
+      http: { status: resposta.status, corpo: texto },
+    };
+  } catch {
+    const status = cancelar.aborted
+      ? "cancelada"
+      : limite.aborted
+      ? "tempo-esgotado"
+      : "erro-rede";
+    return { tentativa: { modelo, status, ms: Date.now() - inicio } };
+  }
+}
+
+/**
+ * Uma rodada: o principal sai na frente, o reserva entra se o principal
+ * demorar ou falhar, e vale a primeira resposta boa. Sem resposta boa, devolve
+ * a ultima falha (com o corpo, para o log).
+ */
+function rodada(
+  corpo: string,
+  prazo: number,
+  tentativas: Tentativa[],
+): Promise<Resultado> {
+  const cancelar = new AbortController();
+  return new Promise((resolver) => {
+    let ativas = 0;
+    let reservaChamado = false;
+    let terminou = false;
+
+    const encerrar = (r: Resultado) => {
+      terminou = true;
+      clearTimeout(relogio);
+      cancelar.abort();
+      resolver(r);
+    };
+
+    const chamar = (modelo: string) => {
+      ativas++;
+      chamarGemini(modelo, corpo, cancelar.signal, prazo).then((r) => {
+        ativas--;
+        tentativas.push(r.tentativa);
+        if (terminou) return;
+        if (r.http && r.http.status >= 200 && r.http.status < 300) {
+          return encerrar(r);
+        }
+
+        if (!reservaChamado) return chamarReserva();
+        if (ativas === 0) encerrar(r);
+      });
+    };
+
+    const chamarReserva = () => {
+      if (reservaChamado || terminou) return;
+      reservaChamado = true;
+      chamar(MODELO_RESERVA);
+    };
+
+    const relogio = setTimeout(chamarReserva, PARALELO_APOS_MS);
+    chamar(MODELO);
+  });
+}
+
+async function atender(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") {
     return responder(405, { erro: "metodo-invalido" });
@@ -161,40 +283,43 @@ Deno.serve(async (req) => {
     },
   });
 
-  let resposta!: Response;
-  for (const [i, { modelo, espera }] of TENTATIVAS.entries()) {
-    if (espera) await new Promise((r) => setTimeout(r, espera));
-    // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
-    resposta = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": CHAVE_GEMINI,
-        },
-        body: corpo,
-      },
-    );
-    // So sobrecarga (503) e erro interno (500) valem nova tentativa; chave
-    // ou modelo errado falharia igual de novo.
-    if (resposta.status !== 503 && resposta.status !== 500) break;
-    // A ultima resposta fica intacta: o corpo dela vai para o log abaixo.
-    if (i === TENTATIVAS.length - 1) break;
-    console.warn("Gemini", modelo, "respondeu", resposta.status);
-    await resposta.body?.cancel();
+  const prazo = Date.now() + TETO_TOTAL_MS;
+  const tentativas: Tentativa[] = [];
+
+  let { http } = await rodada(corpo, prazo, tentativas);
+  // Os dois modelos sobrecarregados ao mesmo tempo: uma rodada a mais, se der
+  // tempo. Chave ou modelo errado falharia igual de novo, entao nao repete.
+  if (http && PASSAGEIRO.has(http.status) && prazo - Date.now() > 8_000) {
+    console.warn("Gemini sobrecarregado nos dois modelos; nova rodada");
+    await new Promise((r) => setTimeout(r, 1_000));
+    ({ http } = await rodada(corpo, prazo, tentativas));
   }
 
-  if (!resposta.ok) {
-    console.error("Gemini respondeu", resposta.status, await resposta.text());
+  if (!http) {
+    console.error("Gemini nao respondeu a tempo", JSON.stringify(tentativas));
+    return responder(504, { erro: "ia-lenta", tentativas });
+  }
+
+  if (http.status < 200 || http.status >= 300) {
+    console.error("Gemini respondeu", http.status, http.corpo);
     // Cota do nivel gratuito estourada: o app mostra "aguarde um momento".
-    if (resposta.status === 429) return responder(429, { erro: "cota" });
+    if (http.status === 429) return responder(429, { erro: "cota", tentativas });
     // O status do Google volta junto (sem a chave) para o motivo aparecer ate
     // no painel de Invocations, mesmo quando o log atrasa.
-    return responder(502, { erro: "ia-indisponivel", status: resposta.status });
+    return responder(502, {
+      erro: "ia-indisponivel",
+      status: http.status,
+      tentativas,
+    });
   }
 
-  const dados = await resposta.json();
+  let dados;
+  try {
+    dados = JSON.parse(http.corpo);
+  } catch {
+    console.error("Gemini devolveu corpo que nao e JSON", http.corpo.slice(0, 200));
+    return responder(502, { erro: "resposta-invalida", tentativas });
+  }
   const texto = dados?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof texto !== "string") {
     // Acontece quando o filtro de seguranca do Gemini bloqueia a imagem.
@@ -213,6 +338,33 @@ Deno.serve(async (req) => {
     return responder(502, { erro: "resposta-invalida" });
   }
 
-  // Repassa o objeto como veio; o parser fica no Dart, onde tem teste.
-  return responder(200, identificacao);
+  // Quanto tempo foi, em que modelo, e quanto o modelo "pensou" antes de
+  // responder: e o que separa demora do Google de demora do raciocinio.
+  const diagnostico = {
+    tentativas,
+    modelo: dados?.modelVersion ?? null,
+    tokensPensamento: dados?.usageMetadata?.thoughtsTokenCount ?? 0,
+  };
+  console.log("Gemini ok", JSON.stringify(diagnostico));
+
+  // Repassa o objeto como veio; o parser fica no Dart, onde tem teste. O
+  // `_diagnostico` vai junto e os parsers do app e do site o ignoram.
+  return responder(
+    200,
+    typeof identificacao === "object" && identificacao !== null && !Array.isArray(identificacao)
+      ? { ...identificacao, _diagnostico: diagnostico }
+      : identificacao,
+  );
+}
+
+// Erro inesperado vira 500 COM os cabecalhos de CORS. Sem isto, a resposta de
+// erro da plataforma vinha sem CORS, o navegador nao conseguia le-la, e o site
+// mostrava "Sem conexao" para um defeito que era daqui.
+Deno.serve(async (req) => {
+  try {
+    return await atender(req);
+  } catch (erro) {
+    console.error("Erro inesperado", erro);
+    return responder(500, { erro: "interno" });
+  }
 });
