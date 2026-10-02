@@ -63,7 +63,18 @@ type Tentativa = {
   ms: number;
 };
 
-type Resultado = { tentativa: Tentativa; resposta?: Response };
+/**
+ * Uma chamada terminada, com o corpo JA LIDO. Ler aqui dentro, antes da
+ * disputa, e de proposito: a primeira versao da corrida devolvia o `Response`
+ * e cancelava os perdedores com um sinal compartilhado — que tambem cortava a
+ * leitura do corpo do vencedor. A funcao quebrava, a resposta de erro da
+ * plataforma vinha sem CORS e o site mostrava "Sem conexao".
+ */
+type Resultado = {
+  tentativa: Tentativa;
+  /** Presente quando o Google respondeu: status HTTP e corpo em texto. */
+  http?: { status: number; corpo: string };
+};
 
 // Chaves publicas que assinam os ID tokens do Firebase Auth.
 const CHAVES_FIREBASE = createRemoteJWKSet(
@@ -135,7 +146,10 @@ function tipoDaImagem(base64: string): string {
   return "image/jpeg";
 }
 
-/** Uma chamada ao Gemini. Nunca lanca: falha vira status na tentativa. */
+/**
+ * Uma chamada ao Gemini, com o corpo lido ate o fim. Nunca lanca: falha vira
+ * status na tentativa.
+ */
 async function chamarGemini(
   modelo: string,
   corpo: string,
@@ -158,9 +172,10 @@ async function chamarGemini(
         signal: AbortSignal.any([cancelar, limite]),
       },
     );
+    const texto = await resposta.text();
     return {
       tentativa: { modelo, status: resposta.status, ms: Date.now() - inicio },
-      resposta,
+      http: { status: resposta.status, corpo: texto },
     };
   } catch {
     const status = cancelar.aborted
@@ -175,7 +190,7 @@ async function chamarGemini(
 /**
  * Uma rodada: o principal sai na frente, o reserva entra se o principal
  * demorar ou falhar, e vale a primeira resposta boa. Sem resposta boa, devolve
- * a ultima falha (com o corpo intacto, para o log).
+ * a ultima falha (com o corpo, para o log).
  */
 function rodada(
   corpo: string,
@@ -187,7 +202,6 @@ function rodada(
     let ativas = 0;
     let reservaChamado = false;
     let terminou = false;
-    let ultimaFalha: Resultado | undefined;
 
     const encerrar = (r: Resultado) => {
       terminou = true;
@@ -201,15 +215,11 @@ function rodada(
       chamarGemini(modelo, corpo, cancelar.signal, prazo).then((r) => {
         ativas--;
         tentativas.push(r.tentativa);
-        if (terminou) {
-          r.resposta?.body?.cancel();
-          return;
+        if (terminou) return;
+        if (r.http && r.http.status >= 200 && r.http.status < 300) {
+          return encerrar(r);
         }
-        if (r.resposta?.ok) return encerrar(r);
 
-        // Guarda so a falha mais recente, liberando o corpo da anterior.
-        ultimaFalha?.resposta?.body?.cancel();
-        ultimaFalha = r;
         if (!reservaChamado) return chamarReserva();
         if (ativas === 0) encerrar(r);
       });
@@ -226,7 +236,7 @@ function rodada(
   });
 }
 
-Deno.serve(async (req) => {
+async function atender(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") {
     return responder(405, { erro: "metodo-invalido" });
@@ -276,38 +286,40 @@ Deno.serve(async (req) => {
   const prazo = Date.now() + TETO_TOTAL_MS;
   const tentativas: Tentativa[] = [];
 
-  let { resposta } = await rodada(corpo, prazo, tentativas);
+  let { http } = await rodada(corpo, prazo, tentativas);
   // Os dois modelos sobrecarregados ao mesmo tempo: uma rodada a mais, se der
   // tempo. Chave ou modelo errado falharia igual de novo, entao nao repete.
-  if (
-    resposta && !resposta.ok && PASSAGEIRO.has(resposta.status) &&
-    prazo - Date.now() > 8_000
-  ) {
+  if (http && PASSAGEIRO.has(http.status) && prazo - Date.now() > 8_000) {
     console.warn("Gemini sobrecarregado nos dois modelos; nova rodada");
-    await resposta.body?.cancel();
     await new Promise((r) => setTimeout(r, 1_000));
-    ({ resposta } = await rodada(corpo, prazo, tentativas));
+    ({ http } = await rodada(corpo, prazo, tentativas));
   }
 
-  if (!resposta) {
+  if (!http) {
     console.error("Gemini nao respondeu a tempo", JSON.stringify(tentativas));
     return responder(504, { erro: "ia-lenta", tentativas });
   }
 
-  if (!resposta.ok) {
-    console.error("Gemini respondeu", resposta.status, await resposta.text());
+  if (http.status < 200 || http.status >= 300) {
+    console.error("Gemini respondeu", http.status, http.corpo);
     // Cota do nivel gratuito estourada: o app mostra "aguarde um momento".
-    if (resposta.status === 429) return responder(429, { erro: "cota", tentativas });
+    if (http.status === 429) return responder(429, { erro: "cota", tentativas });
     // O status do Google volta junto (sem a chave) para o motivo aparecer ate
     // no painel de Invocations, mesmo quando o log atrasa.
     return responder(502, {
       erro: "ia-indisponivel",
-      status: resposta.status,
+      status: http.status,
       tentativas,
     });
   }
 
-  const dados = await resposta.json();
+  let dados;
+  try {
+    dados = JSON.parse(http.corpo);
+  } catch {
+    console.error("Gemini devolveu corpo que nao e JSON", http.corpo.slice(0, 200));
+    return responder(502, { erro: "resposta-invalida", tentativas });
+  }
   const texto = dados?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof texto !== "string") {
     // Acontece quando o filtro de seguranca do Gemini bloqueia a imagem.
@@ -343,4 +355,16 @@ Deno.serve(async (req) => {
       ? { ...identificacao, _diagnostico: diagnostico }
       : identificacao,
   );
+}
+
+// Erro inesperado vira 500 COM os cabecalhos de CORS. Sem isto, a resposta de
+// erro da plataforma vinha sem CORS, o navegador nao conseguia le-la, e o site
+// mostrava "Sem conexao" para um defeito que era daqui.
+Deno.serve(async (req) => {
+  try {
+    return await atender(req);
+  } catch (erro) {
+    console.error("Erro inesperado", erro);
+    return responder(500, { erro: "interno" });
+  }
 });
