@@ -277,9 +277,11 @@ Tudo acima vale. Além disso:
   `GEMINI_MODEL_RESERVA` trocam o modelo sem republicar; o padrão é apelido, porque
   versão fixa envelhece — o `gemini-2.5-flash` já dava 404 em 01/10/2026. O principal é o
   `gemini-flash-lite-latest` (1,8 s no teste de 02/10/2026) e o reserva, o
-  `gemini-flash-latest`, que passou de 25 s. Cada tentativa tem teto de 25 s e a chamada,
-  de 50 s; a resposta traz `_diagnostico` com o tempo de cada tentativa. O nível gratuito
-  responde `503` (sobrecarga) com frequência, e a função tenta de novo antes de desistir.
+  `gemini-flash-latest`. A demora do nível gratuito é **fila**, não modelo (o mesmo lite
+  levou 1,8 s e 20 s em testes seguidos): se o principal não responde em 6 s, o reserva é
+  chamado junto e vale a primeira resposta boa — nos casos lentos, a foto gasta duas
+  consultas da cota. Teto de 50 s por chamada; a resposta traz `_diagnostico` com o tempo
+  de cada chamada ao Gemini.
   Começou com o Cloud Vision, abandonado porque exige faturamento, e o faturamento do
   Google Cloud no Brasil pedia CNPJ. Dois cuidados do nível gratuito: o
   Google pode usar as fotos enviadas (a tela avisa) e a cota é por minuto e por dia —

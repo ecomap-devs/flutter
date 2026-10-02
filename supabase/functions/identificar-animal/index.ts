@@ -39,25 +39,31 @@ const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-lite-latest";
 const MODELO_RESERVA = Deno.env.get("GEMINI_MODEL_RESERVA") ||
   "gemini-flash-latest";
 
-// O nivel gratuito responde 503 ("modelo sobrecarregado") com frequencia, e
-// quase sempre passa em segundos. Antes de desistir: mais duas tentativas no
-// modelo principal e uma no reserva.
-const TENTATIVAS = [
-  { modelo: MODELO, espera: 0 },
-  { modelo: MODELO, espera: 800 },
-  { modelo: MODELO, espera: 1600 },
-  { modelo: MODELO_RESERVA, espera: 0 },
-];
+// A demora do nivel gratuito e fila, nao modelo: o mesmo flash-lite levou
+// 1,8 s num teste e 20 s no seguinte, sem gastar token pensando. Esperar a
+// fila andar nao adianta; o que adianta e nao depender de uma fila so. Se o
+// principal nao responder em PARALELO_APOS_MS, o reserva e chamado junto, e
+// vale a primeira resposta boa — a outra e cancelada. Se o principal falhar
+// antes disso (503, por exemplo), o reserva e chamado na hora.
+//
+// O custo: nos casos lentos, a mesma foto gasta duas consultas da cota.
+const PARALELO_APOS_MS = 6_000;
 
 // Teto de tempo. No primeiro teste do site a chamada levou 106 s: sem limite,
-// uma tentativa lenta segura a tela pelo tempo que o Google quiser. Uma
-// tentativa que estoura o teto pula direto para o modelo reserva, porque
-// repetir o mesmo modelo lento so dobraria a espera.
-const TETO_POR_TENTATIVA_MS = 25_000;
+// uma chamada lenta segura a tela pelo tempo que o Google quiser.
 const TETO_TOTAL_MS = 50_000;
 
-/** Quanto cada tentativa levou — volta na resposta para diagnosticar demora. */
-type Tentativa = { modelo: string; status: number | "tempo-esgotado"; ms: number };
+/** Status que valem nova rodada: sobrecarga e erro interno do Google. */
+const PASSAGEIRO = new Set([500, 503]);
+
+/** Quanto cada chamada levou — volta na resposta para diagnosticar demora. */
+type Tentativa = {
+  modelo: string;
+  status: number | "tempo-esgotado" | "cancelada" | "erro-rede";
+  ms: number;
+};
+
+type Resultado = { tentativa: Tentativa; resposta?: Response };
 
 // Chaves publicas que assinam os ID tokens do Firebase Auth.
 const CHAVES_FIREBASE = createRemoteJWKSet(
@@ -129,6 +135,97 @@ function tipoDaImagem(base64: string): string {
   return "image/jpeg";
 }
 
+/** Uma chamada ao Gemini. Nunca lanca: falha vira status na tentativa. */
+async function chamarGemini(
+  modelo: string,
+  corpo: string,
+  cancelar: AbortSignal,
+  prazo: number,
+): Promise<Resultado> {
+  const inicio = Date.now();
+  const limite = AbortSignal.timeout(Math.max(1, prazo - inicio));
+  try {
+    // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
+    const resposta = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": CHAVE_GEMINI,
+        },
+        body: corpo,
+        signal: AbortSignal.any([cancelar, limite]),
+      },
+    );
+    return {
+      tentativa: { modelo, status: resposta.status, ms: Date.now() - inicio },
+      resposta,
+    };
+  } catch {
+    const status = cancelar.aborted
+      ? "cancelada"
+      : limite.aborted
+      ? "tempo-esgotado"
+      : "erro-rede";
+    return { tentativa: { modelo, status, ms: Date.now() - inicio } };
+  }
+}
+
+/**
+ * Uma rodada: o principal sai na frente, o reserva entra se o principal
+ * demorar ou falhar, e vale a primeira resposta boa. Sem resposta boa, devolve
+ * a ultima falha (com o corpo intacto, para o log).
+ */
+function rodada(
+  corpo: string,
+  prazo: number,
+  tentativas: Tentativa[],
+): Promise<Resultado> {
+  const cancelar = new AbortController();
+  return new Promise((resolver) => {
+    let ativas = 0;
+    let reservaChamado = false;
+    let terminou = false;
+    let ultimaFalha: Resultado | undefined;
+
+    const encerrar = (r: Resultado) => {
+      terminou = true;
+      clearTimeout(relogio);
+      cancelar.abort();
+      resolver(r);
+    };
+
+    const chamar = (modelo: string) => {
+      ativas++;
+      chamarGemini(modelo, corpo, cancelar.signal, prazo).then((r) => {
+        ativas--;
+        tentativas.push(r.tentativa);
+        if (terminou) {
+          r.resposta?.body?.cancel();
+          return;
+        }
+        if (r.resposta?.ok) return encerrar(r);
+
+        // Guarda so a falha mais recente, liberando o corpo da anterior.
+        ultimaFalha?.resposta?.body?.cancel();
+        ultimaFalha = r;
+        if (!reservaChamado) return chamarReserva();
+        if (ativas === 0) encerrar(r);
+      });
+    };
+
+    const chamarReserva = () => {
+      if (reservaChamado || terminou) return;
+      reservaChamado = true;
+      chamar(MODELO_RESERVA);
+    };
+
+    const relogio = setTimeout(chamarReserva, PARALELO_APOS_MS);
+    chamar(MODELO);
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") {
@@ -178,47 +275,18 @@ Deno.serve(async (req) => {
 
   const prazo = Date.now() + TETO_TOTAL_MS;
   const tentativas: Tentativa[] = [];
-  let resposta: Response | undefined;
-  let pularPrincipal = false;
 
-  for (const [i, { modelo, espera }] of TENTATIVAS.entries()) {
-    if (pularPrincipal && modelo === MODELO) continue;
-    if (espera) await new Promise((r) => setTimeout(r, espera));
-    const restante = prazo - Date.now();
-    if (restante < 3_000) break;
-
-    const inicio = Date.now();
-    try {
-      // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
-      resposta = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": CHAVE_GEMINI,
-          },
-          body: corpo,
-          signal: AbortSignal.timeout(Math.min(TETO_POR_TENTATIVA_MS, restante)),
-        },
-      );
-    } catch {
-      tentativas.push({ modelo, status: "tempo-esgotado", ms: Date.now() - inicio });
-      console.warn("Gemini", modelo, "estourou o tempo");
-      resposta = undefined;
-      pularPrincipal = true;
-      continue;
-    }
-    tentativas.push({ modelo, status: resposta.status, ms: Date.now() - inicio });
-
-    // So sobrecarga (503) e erro interno (500) valem nova tentativa; chave
-    // ou modelo errado falharia igual de novo.
-    if (resposta.status !== 503 && resposta.status !== 500) break;
-    // A ultima resposta fica intacta: o corpo dela vai para o log abaixo.
-    if (i === TENTATIVAS.length - 1) break;
-    console.warn("Gemini", modelo, "respondeu", resposta.status);
+  let { resposta } = await rodada(corpo, prazo, tentativas);
+  // Os dois modelos sobrecarregados ao mesmo tempo: uma rodada a mais, se der
+  // tempo. Chave ou modelo errado falharia igual de novo, entao nao repete.
+  if (
+    resposta && !resposta.ok && PASSAGEIRO.has(resposta.status) &&
+    prazo - Date.now() > 8_000
+  ) {
+    console.warn("Gemini sobrecarregado nos dois modelos; nova rodada");
     await resposta.body?.cancel();
-    resposta = undefined;
+    await new Promise((r) => setTimeout(r, 1_000));
+    ({ resposta } = await rodada(corpo, prazo, tentativas));
   }
 
   if (!resposta) {
