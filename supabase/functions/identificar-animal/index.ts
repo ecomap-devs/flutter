@@ -44,6 +44,16 @@ const TENTATIVAS = [
   { modelo: MODELO_RESERVA, espera: 0 },
 ];
 
+// Teto de tempo. No primeiro teste do site a chamada levou 106 s: sem limite,
+// uma tentativa lenta segura a tela pelo tempo que o Google quiser. Uma
+// tentativa que estoura o teto pula direto para o modelo reserva, porque
+// repetir o mesmo modelo lento so dobraria a espera.
+const TETO_POR_TENTATIVA_MS = 25_000;
+const TETO_TOTAL_MS = 50_000;
+
+/** Quanto cada tentativa levou — volta na resposta para diagnosticar demora. */
+type Tentativa = { modelo: string; status: number | "tempo-esgotado"; ms: number };
+
 // Chaves publicas que assinam os ID tokens do Firebase Auth.
 const CHAVES_FIREBASE = createRemoteJWKSet(
   new URL(
@@ -161,21 +171,41 @@ Deno.serve(async (req) => {
     },
   });
 
-  let resposta!: Response;
+  const prazo = Date.now() + TETO_TOTAL_MS;
+  const tentativas: Tentativa[] = [];
+  let resposta: Response | undefined;
+  let pularPrincipal = false;
+
   for (const [i, { modelo, espera }] of TENTATIVAS.entries()) {
+    if (pularPrincipal && modelo === MODELO) continue;
     if (espera) await new Promise((r) => setTimeout(r, espera));
-    // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
-    resposta = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": CHAVE_GEMINI,
+    const restante = prazo - Date.now();
+    if (restante < 3_000) break;
+
+    const inicio = Date.now();
+    try {
+      // A chave vai no cabecalho, nao na URL: URL aparece em log de erro.
+      resposta = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": CHAVE_GEMINI,
+          },
+          body: corpo,
+          signal: AbortSignal.timeout(Math.min(TETO_POR_TENTATIVA_MS, restante)),
         },
-        body: corpo,
-      },
-    );
+      );
+    } catch {
+      tentativas.push({ modelo, status: "tempo-esgotado", ms: Date.now() - inicio });
+      console.warn("Gemini", modelo, "estourou o tempo");
+      resposta = undefined;
+      pularPrincipal = true;
+      continue;
+    }
+    tentativas.push({ modelo, status: resposta.status, ms: Date.now() - inicio });
+
     // So sobrecarga (503) e erro interno (500) valem nova tentativa; chave
     // ou modelo errado falharia igual de novo.
     if (resposta.status !== 503 && resposta.status !== 500) break;
@@ -183,15 +213,25 @@ Deno.serve(async (req) => {
     if (i === TENTATIVAS.length - 1) break;
     console.warn("Gemini", modelo, "respondeu", resposta.status);
     await resposta.body?.cancel();
+    resposta = undefined;
+  }
+
+  if (!resposta) {
+    console.error("Gemini nao respondeu a tempo", JSON.stringify(tentativas));
+    return responder(504, { erro: "ia-lenta", tentativas });
   }
 
   if (!resposta.ok) {
     console.error("Gemini respondeu", resposta.status, await resposta.text());
     // Cota do nivel gratuito estourada: o app mostra "aguarde um momento".
-    if (resposta.status === 429) return responder(429, { erro: "cota" });
+    if (resposta.status === 429) return responder(429, { erro: "cota", tentativas });
     // O status do Google volta junto (sem a chave) para o motivo aparecer ate
     // no painel de Invocations, mesmo quando o log atrasa.
-    return responder(502, { erro: "ia-indisponivel", status: resposta.status });
+    return responder(502, {
+      erro: "ia-indisponivel",
+      status: resposta.status,
+      tentativas,
+    });
   }
 
   const dados = await resposta.json();
@@ -213,6 +253,21 @@ Deno.serve(async (req) => {
     return responder(502, { erro: "resposta-invalida" });
   }
 
-  // Repassa o objeto como veio; o parser fica no Dart, onde tem teste.
-  return responder(200, identificacao);
+  // Quanto tempo foi, em que modelo, e quanto o modelo "pensou" antes de
+  // responder: e o que separa demora do Google de demora do raciocinio.
+  const diagnostico = {
+    tentativas,
+    modelo: dados?.modelVersion ?? null,
+    tokensPensamento: dados?.usageMetadata?.thoughtsTokenCount ?? 0,
+  };
+  console.log("Gemini ok", JSON.stringify(diagnostico));
+
+  // Repassa o objeto como veio; o parser fica no Dart, onde tem teste. O
+  // `_diagnostico` vai junto e os parsers do app e do site o ignoram.
+  return responder(
+    200,
+    typeof identificacao === "object" && identificacao !== null && !Array.isArray(identificacao)
+      ? { ...identificacao, _diagnostico: diagnostico }
+      : identificacao,
+  );
 });
