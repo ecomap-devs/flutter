@@ -163,9 +163,14 @@ class _MapaScreenState extends State<MapaScreen> {
     (_mapa.camera.zoom + passo).clamp(2, 12).toDouble(),
   );
 
+  // Cada fundo tem a sua `key`. Sem ela, trocar o fundo reaproveitava a mesma
+  // camada e deixava o `flutter_map` recarregar os tiles no lugar — e no
+  // celular (02/10/2026) o botao trocava o estado, mas a imagem nao mudava.
+  // Com a key, a camada antiga sai inteira e a nova comeca do zero.
   List<Widget> _camadasDeFundo() => switch (_fundo) {
     _Fundo.claro => [
       TileLayer(
+        key: const ValueKey('fundo-claro'),
         urlTemplate:
             'https://server.arcgisonline.com/ArcGIS/rest/services/'
             'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -174,6 +179,7 @@ class _MapaScreenState extends State<MapaScreen> {
     ],
     _Fundo.satelite => [
       TileLayer(
+        key: const ValueKey('fundo-satelite'),
         urlTemplate:
             'https://server.arcgisonline.com/ArcGIS/rest/services/'
             'World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -185,6 +191,7 @@ class _MapaScreenState extends State<MapaScreen> {
   /// Nomes de cidades e fronteiras, por cima dos biomas e dos alertas — senao
   /// o preenchimento colorido apagaria os nomes.
   Widget _camadaDeNomes() => TileLayer(
+    key: ValueKey('nomes-${_fundo.name}'),
     urlTemplate: switch (_fundo) {
       _Fundo.claro =>
         'https://server.arcgisonline.com/ArcGIS/rest/services/'
