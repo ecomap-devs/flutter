@@ -274,11 +274,14 @@ Tudo acima vale. Além disso:
   `supabase/functions/identificar-animal`, que confere o ID token do Firebase e consulta
   o **Gemini** pelo nível gratuito do Google AI Studio. A chave é **secret do Supabase**
   (`GEMINI_API_KEY`), nunca vai para o `env.json`. `GEMINI_MODEL` e
-  `GEMINI_MODEL_RESERVA` trocam o modelo sem republicar; o padrão é apelido
-  (`gemini-flash-latest`), porque versão fixa envelhece — o `gemini-2.5-flash` já dava 404
-  em 01/10/2026. O nível gratuito responde `503` (sobrecarga) com frequência: a função
-  tenta de novo e cai no modelo reserva, por isso a resposta às vezes demora. Começou com o Cloud Vision, abandonado porque exige faturamento, e o
-  faturamento do Google Cloud no Brasil pedia CNPJ. Dois cuidados do nível gratuito: o
+  `GEMINI_MODEL_RESERVA` trocam o modelo sem republicar; o padrão é apelido, porque
+  versão fixa envelhece — o `gemini-2.5-flash` já dava 404 em 01/10/2026. O principal é o
+  `gemini-flash-lite-latest` (1,8 s no teste de 02/10/2026) e o reserva, o
+  `gemini-flash-latest`, que passou de 25 s. Cada tentativa tem teto de 25 s e a chamada,
+  de 50 s; a resposta traz `_diagnostico` com o tempo de cada tentativa. O nível gratuito
+  responde `503` (sobrecarga) com frequência, e a função tenta de novo antes de desistir.
+  Começou com o Cloud Vision, abandonado porque exige faturamento, e o faturamento do
+  Google Cloud no Brasil pedia CNPJ. Dois cuidados do nível gratuito: o
   Google pode usar as fotos enviadas (a tela avisa) e a cota é por minuto e por dia —
   como o cadastro é aberto, qualquer conta nova consegue gastá-la.
 - 🟢 **O app já foi executado** (09/09/2026), no navegador e no emulador Android, sem
