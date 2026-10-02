@@ -30,13 +30,18 @@ import { createRemoteJWKSet, jwtVerify } from "npm:jose@5";
 
 const CHAVE_GEMINI = Deno.env.get("GEMINI_API_KEY") ?? "";
 const PROJETO_FIREBASE = Deno.env.get("FIREBASE_PROJECT_ID") ?? "";
-const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-latest";
+// O lite e o principal desde 02/10/2026. Medido no site: o flash-latest
+// estourou 25 s (antes do teto, a chamada chegou a 106 s), e o
+// flash-lite-latest (gemini-3.5-flash-lite) respondeu certo em 1,8 s, sem
+// gastar token pensando. O Flash completo fica de reserva, para quando o lite
+// estiver sobrecarregado.
+const MODELO = Deno.env.get("GEMINI_MODEL") || "gemini-flash-lite-latest";
 const MODELO_RESERVA = Deno.env.get("GEMINI_MODEL_RESERVA") ||
-  "gemini-flash-lite-latest";
+  "gemini-flash-latest";
 
 // O nivel gratuito responde 503 ("modelo sobrecarregado") com frequencia, e
 // quase sempre passa em segundos. Antes de desistir: mais duas tentativas no
-// modelo principal e uma no reserva, mais leve e menos disputado.
+// modelo principal e uma no reserva.
 const TENTATIVAS = [
   { modelo: MODELO, espera: 0 },
   { modelo: MODELO, espera: 800 },
